@@ -11,7 +11,7 @@ from whoosh import scoring
 class fulltextDatabase():
     def __init__(self, clean=False, writer=True):
         schema = Schema(grampsHandle=ID(stored=True), sex=KEYWORD(stored=True), person=KEYWORD(stored=True, lowercase=True))
-        directory = '/home/anders/.gramps/gramps52/plugins/Treemerge/ftindex'  #FIX!
+        directory = os.path.abspath(os.path.dirname(__file__)) + '/ftindex'
         if not os.path.exists(directory):
             os.mkdir(directory)
         if not clean and index.exists_in(directory):
