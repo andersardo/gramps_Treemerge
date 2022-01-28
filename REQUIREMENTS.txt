@@ -1,0 +1,6 @@
+whoosh
+sklearn
+Gtk stuff
+xml.parsers
+
+and probably more
