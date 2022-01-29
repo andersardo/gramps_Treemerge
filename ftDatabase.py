@@ -2,7 +2,7 @@
 """API for fulltext index and search with whoosh"""
 
 import os.path
-
+import re
 from whoosh.fields import Schema, ID, KEYWORD
 from whoosh import index
 from whoosh import qparser
@@ -21,6 +21,11 @@ class fulltextDatabase():
         if writer: self.writer = self.ix.writer()
         self.parser = qparser.QueryParser('person', schema=schema, group=qparser.OrGroup)
 
+    def cleanText(self, text):
+        #ersätta alla icke-bokstäver med blanktecken
+        text = re.sub('[^\s\w]|\d|_', ' ', text.lower())  #EVT göra detta i postgresql??
+        return text
+    
     def addDocument(self, grampsHandle, text, sex=''):
         self.writer.add_document(grampsHandle=grampsHandle, sex=sex, person=text)
 
@@ -28,17 +33,17 @@ class fulltextDatabase():
         """Generate fulltext from person-record"""
         text = []
         name = person.get_primary_name()
-        text.append(name.get_first_name().replace('()', '').replace(')', ''))
+        text.append(self.cleanText(name.get_first_name()))
         for surn in name.get_surname_list():
-            text.append("LN" + surn.get_surname())
+            text.append("LN" + self.cleanText(surn.get_surname()))
         if birthDate:
             text.append("B" + birthDate)
         if deathDate:
             text.append("D" + deathDate)
         if birthPlace:
-            text.append("B" + birthPlace.replace(' ', ''))
+            text.append("B" + self.cleanText(birthPlace.replace(' ', '')))
         if deathPlace:
-            text.append("D" + deathPlace.replace(' ', ''))
+            text.append("D" + self.cleanText(deathPlace.replace(' ', '')))
         #TODO normalize place
         self.addDocument(person.handle, ' '.join(text), sex="gender%s" % str(person.get_gender()))
 
