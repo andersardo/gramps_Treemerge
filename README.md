@@ -14,7 +14,7 @@ n-squared to X * n.
 Matches can be grouped in 3 categories 'certain match', 'maybe', 'certain nomatch' where only 'maybe'
 needs to be inspected manually.
 
-IDEAS/TODO
+TODO/IDEAS
 
 Graphview adapted to show 1-2 generations above and below a match including arcs between matched people
 alternative
@@ -25,3 +25,5 @@ How to signal to gramps that I want a view with a specific person as center-pers
 Merge all 'certain match' without user intervention
 
 Is it possible to keep enough information to be able undo a merge in case there is an error?
+
+Integrate the SVM-matchning and generate a model (includes obtaining examples of matches and non-matches).
