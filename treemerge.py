@@ -104,10 +104,10 @@ class TreeMerge(tool.Tool, ManagedWindow):
         uistate = user.uistate
 
         tool.Tool.__init__(self, dbstate, options_class, name)
-        ManagedWindow.__init__(self, uistate, [],
-                                             self.__class__)
-        self.dbstate = dbstate
         self.uistate = uistate
+        self.track = []
+        ManagedWindow.__init__(self, self.uistate, self.track, self.__class__)
+        self.dbstate = dbstate
         self.map = {}
         self.list = []
         self.index = 0
@@ -268,6 +268,9 @@ class TreeMerge(tool.Tool, ManagedWindow):
         (self.p1, self.p2) = self.mlist.get_object(iter)
         self.notImplem("Merge 2 matched persons")
         #print('List', self.p1, self.p2)
+        MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2,
+                    self.on_update, True)
+
         
     def do_comp(self, obj):
         #print('Compare 2 persons, tree-view')
@@ -284,11 +287,12 @@ class TreeMerge(tool.Tool, ManagedWindow):
         else:
             titanic = self.p1
         self.dellist.add(titanic)
-        self.update()
+        #??self.update()
         self.redraw()
 
     #def update_and_destroy(self, obj):
     def close(self, obj, t=None):
+        self.list = None
         #self.update(1)
         #self.graphview.close()
         ManagedWindow.close(self, *obj)
@@ -307,11 +311,12 @@ class TreeMerge(tool.Tool, ManagedWindow):
 class GraphComparePerson(ManagedWindow):
 
     def __init__(self, dbstate, uistate, track, p1, p2, callback):
-        ManagedWindow.__init__(self, uistate, track, self.__class__)
+        self.uistate = uistate
+        self.track = track
+        ManagedWindow.__init__(self, self.uistate, self.track, self.__class__)
         self.update = callback
         self.db = dbstate.db
         self.dbstate = dbstate
-        self.uistate = uistate
         self.p1 = p1
         self.p2 = p2
         #print('GraphComparePerson got', self.p1, self.p2)
@@ -334,6 +339,7 @@ class GraphComparePerson(ManagedWindow):
         self.closebtn.connect('clicked', self.close)
         self.okbtn = top.get_object("grok")
         self.okbtn.connect('clicked', self.ok)
+        self.okbtn.set_label("Merge")
         self.infobtn = top.get_object("grinfo")
         self.infobtn.connect('clicked', self.info)
         self.infobtn.set_label("Info - Not implemented")
@@ -356,18 +362,17 @@ class GraphComparePerson(ManagedWindow):
         self.redraw()
         self.show()
 
-    def close(self, *obj):
-        self.graphView.close()
+    def close(self, obj, t=None):
+        #self.graphView.close()
         ManagedWindow.close(self, *obj)
 
     def on_help_clicked(self, obj):
         """Display the relevant portion of Gramps manual"""
         display_help(WIKI_HELP_PAGE , WIKI_HELP_SEC)
 
-    def ok(self, *obj):
-        print('grok button clicked')
-        self.graphView.close()
-        ManagedWindow.close(self, *obj)
+    def ok(self, obj):
+        MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2,
+                    self.on_update, True)
 
     def info(self, *obj):
         print('grinfo button clicked')
