@@ -146,6 +146,7 @@ class TreeMerge(tool.Tool, ManagedWindow):
         ]
         self.mlist = ListModel(mlist, mtitles, event_func=self.do_merge)
 
+        self.infolbl = top.get_object("title3")
         window = top.toplevel
         self.set_window(window, top.get_object('title'),
                         _('Find/Merge Probably Identical Persons'))
@@ -175,23 +176,26 @@ class TreeMerge(tool.Tool, ManagedWindow):
         closebtn.connect('clicked', self.close)
         self.show()
 
+    def notImplem(self, txt):
+        self.infolbl.set_label("Control: %s - Not implemented yet" % txt)
+
+    def infoMsg(self, txt):
+        self.infolbl.set_label("Control: %s" % txt)
+
     def info(self, *obj):
-        print('Infobtn')
-
-    def do_comp(self, *obj):
-        print('Compare 2 persons, tree-view')
-
-        def do_merge(self, *obj):
-            print('call merge_person plugin')
+        self.notImplem("Infobutton pressed")
+        
+    #def do_merge(self, *obj):
+    #    print('call merge_person plugin')
 
     #def build_menu_names(self, obj):
     #    return (_("Tool settings"),_("Find Duplicates tool"))
 
     def on_help_clicked(self, obj):
         """Display the relevant portion of Gramps manual"""
-        display_help(WIKI_HELP_PAGE , WIKI_HELP_SEC)
+        self.notImplem("Help")
+        #display_help(WIKI_HELP_PAGE , WIKI_HELP_SEC)
 
-#    def on_merge_ok_clicked(self, obj):
     def do_match(self, obj):
         threshold = self.menu.get_model()[self.menu.get_active()][1]
         self.use_soundex = int(self.soundex_obj.get_active())
@@ -259,9 +263,19 @@ class TreeMerge(tool.Tool, ManagedWindow):
     def do_merge(self, obj):
         store, iter = self.mlist.selection.get_selected()
         if not iter:
+            self.infoMsg("Please select a match above")
             return
         (self.p1, self.p2) = self.mlist.get_object(iter)
+        self.notImplem("Merge 2 matched persons")
         #print('List', self.p1, self.p2)
+        
+    def do_comp(self, obj):
+        #print('Compare 2 persons, tree-view')
+        store, iter = self.mlist.selection.get_selected()
+        if not iter:
+            self.infoMsg("Please select a match above")
+            return
+        (self.p1, self.p2) = self.mlist.get_object(iter)
         GraphComparePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2, self.on_update) #FIX
 
     def on_update(self):  #??? FIX behövs?
@@ -274,7 +288,7 @@ class TreeMerge(tool.Tool, ManagedWindow):
         self.redraw()
 
     #def update_and_destroy(self, obj):
-    def close(self, obj):
+    def close(self, obj, t=None):
         #self.update(1)
         #self.graphview.close()
         ManagedWindow.close(self, *obj)
@@ -322,7 +336,7 @@ class GraphComparePerson(ManagedWindow):
         self.okbtn.connect('clicked', self.ok)
         self.infobtn = top.get_object("grinfo")
         self.infobtn.connect('clicked', self.info)
-
+        self.infobtn.set_label("Info - Not implemented")
         """
         top.connect_signals({
             "destroy_passed_object" : self.close,
@@ -352,6 +366,8 @@ class GraphComparePerson(ManagedWindow):
 
     def ok(self, *obj):
         print('grok button clicked')
+        self.graphView.close()
+        ManagedWindow.close(self, *obj)
 
     def info(self, *obj):
         print('grinfo button clicked')
