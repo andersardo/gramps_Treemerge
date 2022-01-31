@@ -383,8 +383,9 @@ class GraphComparePerson(ManagedWindow):
         pass
 
     def on_update(self):
-        self.update()
-        self.redraw()
+        self.close('')
+        #self.update()
+        #self.redraw()
 
     def update_and_destroy(self, obj):
         self.update(1)
