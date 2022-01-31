@@ -247,7 +247,7 @@ class TreeMerge(tool.Tool, ManagedWindow):
                 continue
             list.append((c, p1key, p2key))
 
-        self.list.clear()
+        self.mlist.clear()
         for (c, p1key, p2key) in list:
             c1 = "%5.2f" % c
             c2 = "%5.2f" % (100-c)
@@ -271,7 +271,6 @@ class TreeMerge(tool.Tool, ManagedWindow):
         MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2,
                     self.on_update, True)
 
-        
     def do_comp(self, obj):
         #print('Compare 2 persons, tree-view')
         store, iter = self.mlist.selection.get_selected()
