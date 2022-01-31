@@ -76,8 +76,8 @@ _val2label = {
     0.9  : _("High"),
     }
 
-WIKI_HELP_PAGE = '%s_-_Tools' % URL_MANUAL_PAGE
-WIKI_HELP_SEC = _('Find_Possible_Duplicate_People', 'manual')
+#WIKI_HELP_PAGE = '%s_-_Tools' % URL_MANUAL_PAGE
+#WIKI_HELP_SEC = _('Find_Possible_Duplicate_People', 'manual')
 
 #-------------------------------------------------------------------------
 #
@@ -151,19 +151,6 @@ class TreeMerge(tool.Tool, ManagedWindow):
         self.set_window(window, top.get_object('title'),
                         _('Find/Merge Probably Identical Persons'))
         self.setup_configs('interface.duplicatepeopletool', 350, 220) #???
-        """
-        top.connect_signals({
-            "on_do_merge_clicked"   : self.__dummy,
-            "on_help_show_clicked"  : self.__dummy,
-            "on_delete_show_event"  : self.__dummy,
-            "on_merge_ok_clicked"   : self.on_merge_ok_clicked,
-            "destroy_passed_object" : self.close,
-            "on_help_clicked"       : self.on_help_clicked,
-            "on_delete_merge_event" : self.close,
-            "on_delete_event"       : self.close,
-            })
-
-        """
         infobtn = top.get_object("infobtn")
         infobtn.connect('clicked', self.info)
         matchbtn = top.get_object("matchbtn")
@@ -185,9 +172,6 @@ class TreeMerge(tool.Tool, ManagedWindow):
     def info(self, *obj):
         self.notImplem("Infobutton pressed")
         
-    #def do_merge(self, *obj):
-    #    print('call merge_person plugin')
-
     #def build_menu_names(self, obj):
     #    return (_("Tool settings"),_("Find Duplicates tool"))
 
@@ -226,14 +210,6 @@ class TreeMerge(tool.Tool, ManagedWindow):
         else:
             self.redraw()
             self.show() #??
-        """
-            try:
-                DuplicatePeopleToolMatches(self.dbstate, self.uistate,
-                                           self.track, self.list, self.map,
-                                           self.update)
-            except WindowActiveError:
-                pass
-        """
 
     def redraw(self):
         list = []
@@ -259,7 +235,6 @@ class TreeMerge(tool.Tool, ManagedWindow):
             pn2 = "%s %s" % (p2.gramps_id, name_displayer.display(p2))  #name_displayer.display(p2)
             self.mlist.add([c1, pn1, pn2, c2],(p1key, p2key))
 
-    #    def on_do_merge_clicked(self, obj):
     def do_merge(self, obj):
         store, iter = self.mlist.selection.get_selected()
         if not iter:
@@ -289,11 +264,9 @@ class TreeMerge(tool.Tool, ManagedWindow):
         #??self.update()
         self.redraw()
 
-    #def update_and_destroy(self, obj):
+    #def update_and_destroy(self, obj): ??
+    
     def close(self, obj, t=None):
-        self.list = None
-        #self.update(1)
-        #self.graphview.close()
         ManagedWindow.close(self, *obj)
 
     def person_delete(self, handle_list):
@@ -318,7 +291,6 @@ class GraphComparePerson(ManagedWindow):
         self.dbstate = dbstate
         self.p1 = p1
         self.p2 = p2
-        #print('GraphComparePerson got', self.p1, self.p2)
 
         top = Glade(toplevel="compgraph")
         window = top.toplevel
@@ -342,22 +314,7 @@ class GraphComparePerson(ManagedWindow):
         self.infobtn = top.get_object("grinfo")
         self.infobtn.connect('clicked', self.info)
         self.infobtn.set_label("Info - Not implemented")
-        """
-        top.connect_signals({
-            "destroy_passed_object" : self.close,
-            "on_do_merge_clicked"   : self.on_do_merge_clicked,
-            "on_help_show_clicked"  : self.on_help_clicked,
-            "on_delete_show_event"  : self.close,
-            "on_merge_ok_clicked"   : self.__dummy,
-            "on_help_clicked"       : self.__dummy,
-            "on_delete_merge_event" : self.__dummy,
-            "on_delete_event"       : self.__dummy,
-            })
-        """
         self.db.connect("person-delete", self.person_delete)
-        #??MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2,
-        #??            self.on_update, True)
-
         self.redraw()
         self.show()
 
@@ -367,7 +324,8 @@ class GraphComparePerson(ManagedWindow):
 
     def on_help_clicked(self, obj):
         """Display the relevant portion of Gramps manual"""
-        display_help(WIKI_HELP_PAGE , WIKI_HELP_SEC)
+        #display_help(WIKI_HELP_PAGE , WIKI_HELP_SEC)
+        pass
 
     def ok(self, obj):
         MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2,
@@ -384,10 +342,8 @@ class GraphComparePerson(ManagedWindow):
 
     def on_update(self):
         self.close('')
-        #self.update()
-        #self.redraw()
 
-    def update_and_destroy(self, obj):
+    def update_and_destroy(self, obj):  #??
         self.update(1)
         self.close()
 
