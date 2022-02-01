@@ -117,7 +117,6 @@ class TreeMerge(tool.Tool, ManagedWindow):
         self.merger = None
         self.mergee = None
         self.removed = {}
-        self.update = callback
         self.use_soundex = 1
         self.dellist = set()
         self.length = len(self.list)
@@ -167,7 +166,8 @@ class TreeMerge(tool.Tool, ManagedWindow):
         closebtn = top.get_object("closebtn")
         closebtn.connect('clicked', self.close)
 
-        self.dbstate.connect('database-changed', self.redraw)
+        self.dbstate.connect('database-changed', self.redraw) #??
+        self.db.connect("person-delete", self.person_delete)  #??
 
         self.show()
 
@@ -180,9 +180,6 @@ class TreeMerge(tool.Tool, ManagedWindow):
     def info(self, *obj):
         self.notImplem("Infobutton pressed")
         
-    #def build_menu_names(self, obj):
-    #    return (_("Tool settings"),_("Find Duplicates tool"))
-
     def on_help_clicked(self, obj):
         """Display the relevant portion of Gramps manual"""
         self.notImplem("Help")
@@ -220,20 +217,6 @@ class TreeMerge(tool.Tool, ManagedWindow):
             self.show() #??
 
     def redraw(self):
-        print("Redraw")
-        if self.p1 and self.p2:
-            #see if active pair is merged? self.p1 self.p2
-            merged = False
-            try:
-                p1 = self.db.get_person_from_handle(self.p1)
-                p2 = self.db.get_person_from_handle(self.p2)
-            except:
-                merged = True
-            if merged:
-                print("Merged %s, %s" % (self.p1, self.p2))
-                #Update self.dellist
-            else:
-                print("NOT Merged %s, %s" % (self.p1, self.p2))
         list = []
         for p1key, p1data in self.map.items():
             if p1key in self.dellist:
@@ -264,36 +247,35 @@ class TreeMerge(tool.Tool, ManagedWindow):
             return
         (self.p1, self.p2) = self.mlist.get_object(iter)
         self.notImplem("Merge 2 matched persons")
-        #print('List', self.p1, self.p2)
         MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2,
                     self.on_update, True)
 
     def do_comp(self, obj):
-        #print('Compare 2 persons, tree-view')
         store, iter = self.mlist.selection.get_selected()
         if not iter:
             self.infoMsg("Please select a match above")
             return
         (self.p1, self.p2) = self.mlist.get_object(iter)
+        self.uistate.set_active(self.p1, 'Person')
         GraphComparePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2, self.on_update) #FIX
 
-    def on_update(self):  #??? FIX behövs?
+    def on_update(self, handle_list=None):
         if self.db.has_person_handle(self.p1):
             titanic = self.p2
         else:
             titanic = self.p1
         self.dellist.add(titanic)
-        #??self.update()
         self.redraw()
 
-    #def update_and_destroy(self, obj): ??
+    def update_and_destroy(self, obj):
+        self.close()
     
     def close(self, obj, t=None):
         ManagedWindow.close(self, *obj)
 
     def person_delete(self, handle_list):
         """ deal with person deletes outside of the tool """
-        self.dellist.update(handle_list)
+        self.dellist.update(handle_list)  #add to dellist
         self.redraw()
 
     def __dummy(self, obj):
@@ -308,7 +290,7 @@ class GraphComparePerson(ManagedWindow):
         self.uistate = uistate
         self.track = track
         ManagedWindow.__init__(self, self.uistate, self.track, self.__class__)
-        self.update = callback
+        self.update = callback # = tool.on_update
         self.db = dbstate.db
         self.dbstate = dbstate
         self.p1 = p1
@@ -336,12 +318,9 @@ class GraphComparePerson(ManagedWindow):
         self.infobtn = top.get_object("grinfo")
         self.infobtn.connect('clicked', self.info)
         self.infobtn.set_label("Info - Not implemented")
-        self.db.connect("person-delete", self.person_delete)
-        self.redraw()
         self.show()
 
     def close(self, obj, t=None):
-        #self.graphView.close()
         ManagedWindow.close(self, *obj)
 
     def on_help_clicked(self, obj):
@@ -349,30 +328,25 @@ class GraphComparePerson(ManagedWindow):
         #display_help(WIKI_HELP_PAGE , WIKI_HELP_SEC)
         pass
 
-    def ok(self, obj):
+    def ok(self, obj): #RENAME
         MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2,
-                    self.on_update, True)
+                    self.gr_on_update, True)
 
     def info(self, *obj):
         print('grinfo button clicked')
 
-    def redraw(self):
-        pass # ??
-
-    def on_do_merge_clicked(self, obj):
-        pass
-
-    def on_update(self):
+    def gr_on_update(self):
         self.close('')
 
-    def update_and_destroy(self, obj):  #??
-        self.update(1)
+    def update_and_destroy(self, obj):
+        self.update(obj)
         self.close()
 
-    def person_delete(self, handle_list):
+    #Evt enable and just call close?
+    #def person_delete(self, handle_list):
         """ deal with person deletes outside of the tool """
         #self.dellist.update(handle_list)
-        self.redraw()
+        #self.redraw()
 
     def __dummy(self, obj):
         """dummy callback, needed because a shared glade file is used for
