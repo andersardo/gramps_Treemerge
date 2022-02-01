@@ -56,6 +56,8 @@ from gramps.gen.const import GRAMPS_LOCALE as glocale
 _ = glocale.translation.sgettext
 from gramps.gui.glade import Glade
 
+#from libaccess import *
+
 #-------------------------------------------------------------------------
 #
 # Fulltextdatabase Whoosh
@@ -108,6 +110,7 @@ class TreeMerge(tool.Tool, ManagedWindow):
         self.track = []
         ManagedWindow.__init__(self, self.uistate, self.track, self.__class__)
         self.dbstate = dbstate
+        #init(self.dbstate.db)  # for libaccess
         self.map = {}
         self.list = []
         self.index = 0
@@ -118,6 +121,8 @@ class TreeMerge(tool.Tool, ManagedWindow):
         self.use_soundex = 1
         self.dellist = set()
         self.length = len(self.list)
+        self.p1 = None
+        self.p2 = None
 
         top = Glade(toplevel="treemerge", also_load=["liststore1"])
 
@@ -161,6 +166,9 @@ class TreeMerge(tool.Tool, ManagedWindow):
         mergebtn.connect('clicked', self.do_merge)
         closebtn = top.get_object("closebtn")
         closebtn.connect('clicked', self.close)
+
+        self.dbstate.connect('database-changed', self.redraw)
+
         self.show()
 
     def notImplem(self, txt):
@@ -212,6 +220,20 @@ class TreeMerge(tool.Tool, ManagedWindow):
             self.show() #??
 
     def redraw(self):
+        print("Redraw")
+        if self.p1 and self.p2:
+            #see if active pair is merged? self.p1 self.p2
+            merged = False
+            try:
+                p1 = self.db.get_person_from_handle(self.p1)
+                p2 = self.db.get_person_from_handle(self.p2)
+            except:
+                merged = True
+            if merged:
+                print("Merged %s, %s" % (self.p1, self.p2))
+                #Update self.dellist
+            else:
+                print("NOT Merged %s, %s" % (self.p1, self.p2))
         list = []
         for p1key, p1data in self.map.items():
             if p1key in self.dellist:
@@ -232,7 +254,7 @@ class TreeMerge(tool.Tool, ManagedWindow):
             if not p1 or not p2:
                 continue
             pn1 = "%s %s" % (p1.gramps_id, name_displayer.display(p1))
-            pn2 = "%s %s" % (p2.gramps_id, name_displayer.display(p2))  #name_displayer.display(p2)
+            pn2 = "%s %s" % (p2.gramps_id, name_displayer.display(p2))
             self.mlist.add([c1, pn1, pn2, c2],(p1key, p2key))
 
     def do_merge(self, obj):
