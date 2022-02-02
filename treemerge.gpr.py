@@ -6,11 +6,11 @@
 
 register(TOOL,
          id = 'treemerge',
-         name = _("Merge 2 trees by matching for people"),
+         name = _("Merge 2 trees by matching persons"),
          description = _("Searches the entire database, looking for "
                          "individual entries that may represent the same person."
                          "Verify by viewing small tree around the matched persons."),
-         version = '0.1alpha',
+         version = '0.2alpha',
          gramps_target_version = '5.2',
          status = STABLE,
          fname = 'treemerge.py',

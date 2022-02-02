@@ -29,19 +29,19 @@ needs to be inspected manually.
 
 ## QUESTIONS
 
-* Is it possible to keep enough information to be able undo a merge in case there is an error discovered later?
+- Is it possible to keep enough information to be able undo a merge in case there is an error discovered later?
 
 
 ## USE
 
-Start Treemerge from the tools menu
+Start Treemerge from the tools menu ('Family Tree Processing' -> 'Merge 2 trees by matching persons')
 
-Press **Match** and the select a matched pair.
+Press **Match** and then select a matched pair.
 
 ![Main window](/TreemergeMain.png)
 
-Press **Compare** to see the two family-trees for the persons in the selected pair.
+Press **Compare** to see the two family-trees for the matched persons in the selected pair.
 
-IMG
+![Graphical compare of match](/TreemergeCompare.png)
 
 In order to merge the selected matched pair of persons press **Merge**, which will start Gramps normal PersonMerge.
