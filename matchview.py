@@ -1064,30 +1064,7 @@ class DotSvgGenerator(object):
         text += " ]"
         self.write(' _%s %s;\n' % (node_id, text))
 
-    def getPairs(self, group1, group2):
-        pairs = set()
-        if len(group1) == 1 and len(group2) == 1:
-            pairs.add((group1[0], group2[0]))
-        elif len(group1) >= 1 and len(group2) == 0:
-            for spouse in group1:
-                pairs.add((spouse, None))
-        elif len(group1) == 0 and len(group2) >= 1:
-            for spouse in group2:
-                pairs.add((None, spouse))
-        elif len(group1) == 0 and len(group2) == 0:
-            pass
-        else:
-            #NOT IMPLEMENTED
-            print(group1)
-            print(group2)
-            print('Multiple persons in group - not implemented!')
-            # FIX handle error
-            sys.exit()
-        return pairs
-
     def get_person_data(self, person):
-        #OLD  if not handle: return ('-', '-', '-', '-', '-')
-        #OLD  person = self.database.get_person_from_handle(handle)
         if not person: return ('?', '?', '?', '?', '?')
         name = person.get_primary_name().get_name()
         birth_ref = person.get_birth_ref()
@@ -1136,152 +1113,15 @@ class DotSvgGenerator(object):
         elif green < 0: green = 0
         return "#%02x%02x10" % (red, green)
 
-    def handle_pair(self, cmp_id, handle1, handle2, main=False):
-        (name1, birthDate1, birthPlace1, deathDate1, deathPlace1) = self.get_person_data(handle1)
-        (name2, birthDate2, birthPlace2, deathDate2, deathPlace2) = self.get_person_data(handle2)
-        color = self.get_match_color(handle1, handle2)
-        options = 'margin="0.11,0.08" shape="box" color="#1f4986" fillcolor="%s" fontcolor="#000000" style="solid, filled"' % color
-        row1 = '<TR><TD></TD><TD><B>%s</B></TD><TD><B>%s</B></TD></TR>' % (name1, name2)
-        row2 = '<TR><TD ROWSPAN="2">b.</TD><TD>%s</TD><TD>%s</TD></TR>' % (birthDate1, birthDate2)
-        row3 = '<TR><TD>%s</TD><TD>%s</TD></TR>' % (birthPlace1, birthPlace2)
-        row4 = '<TR><TD ROWSPAN="2">d.</TD><TD>%s</TD><TD>%s</TD></TR>' % (deathDate1, deathDate2)
-        row5 = '<TR><TD>%s</TD><TD>%s</TD></TR>' % (deathPlace1, deathPlace2)
-        if handle1 == handle2:
-            row2 = '<TR><TD colspan="3">SAME</TD></TR>'
-            table = '<TABLE BORDER="3" CELLSPACING="0" CELLPADDING="1" CELLBORDER="1">%s%s</TABLE>' % (row1, row2)
-        elif main:
-            table = '<TABLE BORDER="3" CELLSPACING="0" CELLPADDING="1" CELLBORDER="1">%s%s%s%s%s</TABLE>' % (row1, row2, row3, row4, row5)
-        else:
-            table = '<TABLE BORDER="0" CELLSPACING="0" CELLPADDING="1" CELLBORDER="1">%s%s%s%s%s</TABLE>' % (row1, row2, row3, row4, row5)
-        label = 'label=<%s>' % table
-        txt = ' %s [ %s label=<%s> ];\n' % (cmp_id, options, table)
-        self.write(txt)
-
-    def handle_family(self, id):
-        #txt = ' %s [margin="0.11,0.08" shape="ellipse" color="#cccccc" fillcolor="#eeeeee" fontcolor="#000000" style="filled" label=<<TABLE BORDER="0" CELLSPACING="2" CELLPADDING="0" CELLBORDER="0"><TR><TD>%s</TD></TR></TABLE>> ];\n' % (id, 'Marr')
-        options = 'margin="0.11,0.08" shape="ellipse" color="#cccccc" fillcolor="#eeeeee" fontcolor="#000000" style="filled"'
-        (tmp, fam_handle) = id.split('_')
-        family = self.database.get_family_from_handle(fam_handle)
-        self.show_full_dates = True
-        #self.show_places = True
-        #label = self.get_family_label(family)
-        label = '<TABLE BORDER="0" CELLSPACING="2" CELLPADDING="0" CELLBORDER="0"><TR><TD>FAM</TD></TR></TABLE>' #TMP FIX
-        txt = ' %s [%s label=<%s> ];\n' % (id, options, label)
-        self.write('%s\n' % txt)
-
-    def handle_link(self, from_id, to_id):
-        txt = '  %s -> %s  [ style=solid arrowhead=none arrowtail=none color="#2e3436" ];\n' % (from_id, to_id)
-        self.write('%s\n' % txt)
-
-    def genDotCmp(self, tree1, tree2):
-        """
-            generate dot-code for two trees compared
-        """
-        nodeMap = {}
-        cmp_cnt = 1
-        # main pair
-        cmp_id = "cmp_%d" % cmp_cnt
-        self.handle_pair(cmp_id, tree1.main_person_handle, tree2.main_person_handle, main=True)
-        nodeMap[tree1.main_person_handle] = cmp_id
-        nodeMap[tree2.main_person_handle] = cmp_id
-        cmp_cnt += 1
-        # spouses
-        spouses1 = [x.person_handle for x in tree1.main_person_treenode.spouses]
-        spouses2 = [x.person_handle for x in tree2.main_person_treenode.spouses]
-        for pair in self.getPairs(spouses1, spouses2):
-            cmp_id = "cmp_%d" % cmp_cnt
-            self.handle_pair(cmp_id, pair[0], pair[1])
-            nodeMap[pair[0]] = cmp_id
-            nodeMap[pair[1]] = cmp_id
-            cmp_cnt += 1
-        # children
-        children1 = tree1.main_person_treenode.children
-        children2 = tree2.main_person_treenode.children
-        #   sort by birth(year) - see old RGD
-        # pair children
-        # Test just do simple pairs
-        for child in children1 + children2:
-            cmp_id = "cmp_%d" % cmp_cnt
-            self.handle_pair(cmp_id, child.person_handle, None)
-            nodeMap[child.person_handle] = cmp_id
-            cmp_cnt += 1
-        #end Test
-        # parents
-        fathers1 = tree1.main_person_treenode.fathers
-        fathers2 = tree2.main_person_treenode.fathers
-        for pair in self.getPairs(fathers1, fathers2):
-            cmp_id = "cmp_%d" % cmp_cnt
-            self.handle_pair(cmp_id, pair[0], pair[1])
-            nodeMap[pair[0]] = cmp_id
-            nodeMap[pair[1]] = cmp_id
-            cmp_cnt += 1
-        mothers1 = tree1.main_person_treenode.mothers
-        mothers2 = tree2.main_person_treenode.mothers
-        for pair in self.getPairs(mothers1, mothers2):
-            cmp_id = "cmp_%d" % cmp_cnt
-            self.handle_pair(cmp_id, pair[0], pair[1])
-            nodeMap[pair[0]] = cmp_id
-            nodeMap[pair[1]] = cmp_id
-            cmp_cnt += 1
-
-        #recurse for parent parents ? FIX ancestor_generations ?
-
-        # map ids in links
-        # create family nodes
-        done_families = []
-        for (from_id, to_id, cluster) in tree1.get_link_list().union(tree2.get_link_list()):
-            # ignore cluster for the time beeing
-            try:
-                from_id = nodeMap[from_id]
-            except:
-                from_id = "F_%s" % from_id
-                if from_id not in done_families:
-                    self.handle_family(from_id)
-                    done_families.append(from_id)
-            try:
-                to_id = nodeMap[to_id]
-            except:
-                to_id = "F_%s" % to_id
-                if to_id not in done_families:
-                    self.handle_family(to_id)
-                    done_families.append(to_id)
-            self.handle_link(from_id, to_id)
-        return
-
-    # AA0 new code end
-
-    # AA0 changed to generate compare graph: active_person -> p_handle1, p_handle2
-    def OLDbuild_graph(self, p_handle1, p_handle2):  # active_person):
-        """
-        Builds a GraphViz tree based on comparing p_handle1, p_handle2
-        """
-        # reinit dot file stream (write starting graphviz dot code to file)
-        self.init_dot()
-
-        tree1 = Tree(self.database)
-        tree1.BuildTree(p_handle1)
-        tree2 = Tree(self.database)
-        tree2.BuildTree(p_handle2)
-
-        self.genDotCmp(tree1, tree2)
-
-        # close the graphviz dot code with a brace
-        self.write('}\n')
-
-        # get DOT and generate SVG data by Graphviz
-        dot_data = self.dot.getvalue().encode('utf8')
-        svg_data = self.make_svg(dot_data)
-
-        return (dot_data, svg_data)
-
     def person_node(self, p):
         (name, birthDate, birthPlace, deathDate, deathPlace) = self.get_person_data(p)
-        row1 = '<TR><TD>%s <B>%s</B></TD></TR>' % (p.gramps_id, name)
-        row2 = '<TR><TD>%s</TD></TR>' % birthDate
-        row3 = '<TR><TD>%s</TD></TR>' % birthPlace
-        row4 = '<TR><TD>%s</TD></TR>' % deathDate
-        row5 = '<TR><TD>%s</TD></TR>' % deathPlace
-        label = '<TABLE BORDER="0" CELLSPACING="2" CELLPADDING="0" CELLBORDER="0">%s%s%s%s%s</TABLE>' % (row1, row2, row3, row4, row5)
+        rows = '<TR><TD><B>%s</B></TD></TR>' % name
+        rows += '<TR><TD>ID: %s</TD></TR>' % p.gramps_id
+        rows += '<TR><TD>b. %s</TD></TR>' % birthDate
+        rows += '<TR><TD>%s</TD></TR>' % birthPlace
+        rows += '<TR><TD>d. %s</TD></TR>' % deathDate
+        rows += '<TR><TD>%s</TD></TR>' % deathPlace
+        label = '<TABLE BORDER="0" CELLSPACING="2" CELLPADDING="0" CELLBORDER="0">%s</TABLE>' % rows
         self.add_node(p.gramps_id, label, shape='box', fillcolor=self.color)
 
     def family_node(self, family):
@@ -1292,8 +1132,8 @@ class DotSvgGenerator(object):
         txt = ' _%s [%s label=<%s> ];\n' % (family.gramps_id, options, label)
         self.write('%s\n' % txt)
 
-    def add_link(self, from_node, to_node):
-        txt = '  _%s -> _%s  [ style=solid arrowhead=none arrowtail=none color="#2e3436" ];\n' % (from_node, to_node)
+    def add_link(self, from_node, to_node, style='solid'):
+        txt = '  _%s -> _%s  [ style=%s arrowhead=none arrowtail=none color="#2e3436" ];\n' % (from_node, to_node, style)
         self.write('%s\n' % txt)
 
     def find_parents(self, handle):
@@ -1335,7 +1175,7 @@ class DotSvgGenerator(object):
         self.person_node(p2)
         done.append(p2.gramps_id)
         self.write('subgraph TMP1{ style="invis";')
-        self.add_link(p1.gramps_id, p2.gramps_id)
+        self.add_link(p1.gramps_id, p2.gramps_id, style='dashed')
         self.write('{rank = same; _%s; _%s;}\n' % (p1.gramps_id, p2.gramps_id))
         self.write('}\n')
         self.color =  '#a5cafb' #Blue for p1
