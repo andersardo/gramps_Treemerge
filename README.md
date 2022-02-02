@@ -38,7 +38,7 @@ Start Treemerge from the tools menu
 
 Press **Match** and the select a matched pair.
 
-IMG
+![Main window](/TreemergeMain.png)
 
 Press **Compare** to see the two family-trees for the persons in the selected pair.
 
