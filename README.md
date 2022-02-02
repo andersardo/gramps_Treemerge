@@ -14,6 +14,8 @@ n-squared to X * n.
 Matches can be grouped in 3 categories 'certain match', 'maybe', 'certain nomatch' where only 'maybe'
 needs to be inspected manually.
 
+The implementation borrows a lot from GraphView and Gramps 'Find Possible Duplicate People'.
+
 ## TODO/IDEAS
 
 * Use full Graphview to inspect the family-trees around a match
