@@ -1,7 +1,7 @@
 # gramps_Treemerge
 A gramps plugin to merge data from 2 trees
 
-DESIGN
+# DESIGN
 
   * Generate a text-representation of a person (possibly including parents) with names, dates, places
       and index that in a free-text database
@@ -14,16 +14,34 @@ n-squared to X * n.
 Matches can be grouped in 3 categories 'certain match', 'maybe', 'certain nomatch' where only 'maybe'
 needs to be inspected manually.
 
-TODO/IDEAS
+## TODO/IDEAS
 
-Graphview adapted to show 1-2 generations above and below a match including arcs between matched people
-alternative
-2 Graphview windows with the 2 matched persons as center-person
+* Use full Graphview to inspect the family-trees around a match
+  - Graphview adapted to show 1-2 generations above and below a match including arcs between matched people
 
-How to signal to gramps that I want a view with a specific person as center-person
+  - Graphview windows with the 2 matched persons as center-person
 
-Merge all 'certain match' without user intervention
+* Merge all 'certain match' without user intervention
 
-Is it possible to keep enough information to be able undo a merge in case there is an error?
+* Integrate the SVM-matchning and generate a model (includes obtaining examples of matches and non-matches).
 
-Integrate the SVM-matchning and generate a model (includes obtaining examples of matches and non-matches).
+* Support family-matching and merging
+
+## QUESTIONS
+
+* Is it possible to keep enough information to be able undo a merge in case there is an error discovered later?
+
+
+## USE
+
+Start Treemerge from the tools menu
+
+Press **Match** and the select a matched pair.
+
+IMG
+
+Press **Compare** to see the two family-trees for the persons in the selected pair.
+
+IMG
+
+In order to merge the selected matched pair of persons press **Merge**, which will start Gramps normal PersonMerge.
