@@ -60,7 +60,7 @@ def get_name_obj(person):
 
 def get_surnames(name):
     """Construct a full surname of the surnames"""
-    return ' '.join([surn.get_surname() for surn in name.get_surname_list()])
+    return ' '.join([surn.get_surname().lower() for surn in name.get_surname_list()])
 
 def is_initial(name):
     if len(name) > 2:
@@ -142,7 +142,7 @@ class Match():
     def setup_data_structures(self):
         length = self.db.get_number_of_people()
 
-        self.progress.set_pass(_('Pass 1: Building preliminary lists and indexes'), length)
+        self.progress.set_pass(_('Pass 1: Building indexes'), length)
         self.ftdb = fulltextDatabase(clean=True) # remove old and generate new ft database
 
         for p1_id in self.db.iter_person_handles():
@@ -154,19 +154,8 @@ class Match():
             birthPlace = event_data[0][1]
             deathDate = event_data[1][0]
             deathPlace = event_data[1][1]
-            self.ftdb.index(p1, birthDate, birthPlace, deathDate, deathPlace)
-        self.ftdb.commitIndex()
-        # ADD
-        #Split on 2 dbs - person and family
-        #generate family database here
-        #get_all_handles
-        #   find father and mother
-        #   person.get_main_parents_family_handle()
-        #     db.get_family_from_handle
-        #     family.get_father_handle
-        #     family.get_mother_handle
-        #   gen familyText, index
-        #commit familyText db
+            self.ftdb.index(p1, birthDate, birthPlace, deathDate, deathPlace) #extracts names, clean text
+        self.ftdb.commitIndex() # generates family index aswell (not done yet)
 
     def find_potentials(self, thresh):
         self.map = {}
@@ -182,7 +171,6 @@ class Match():
             OK = False
             for tagHandle in p1.tag_list:
                 tag = self.db.get_tag_from_handle(tagHandle).get_name()
-                #print('TAG=', tag)
                 if tag.startswith('Master'):
                     print('Found P1 Master', p1.gramps_id)
                     OK = True
@@ -195,13 +183,10 @@ class Match():
                     continue
                 done.append((p1key, p2key))
                 done.append((p2key, p1key))
-                ##
-                #do Gramps alg and multiply the 2 scores
                 p2 = self.db.get_person_from_handle(p2key)
                 chance = self.compare_people(p1, p2) / 6.5  # FIX use SVM-matching ?? MAX_CHANCE = 6.5 ??
                 combined_score = score * chance
                 score = combined_score
-                ##
                 if score >= thresh:
                     if p1key in self.my_map:
                         val = self.my_map[p1key]
@@ -237,8 +222,9 @@ class Match():
         name1 = p1.get_primary_name()
         name2 = p2.get_primary_name()
 
+        #FIX lower case
         chance = self.name_match(name1, name2)
-        if chance == -1  :
+        if chance == -1:
             return -1
 
         birth1_ref = p1.get_birth_ref()
@@ -267,6 +253,7 @@ class Match():
 
         value = self.date_match(birth1.get_date_object(),
                                 birth2.get_date_object())
+        #print("%s :: %s = %s" % (birth1.get_date_object(), birth2.get_date_object(), value))
         if value == -1 :
             return -1
         chance += value
@@ -316,7 +303,7 @@ class Match():
             else:
                 dad2 = None
 
-            value = self.name_match(dad1,dad2)
+            value = self.name_match(dad1, dad2)
 
             if value == -1:
                 return -1
@@ -374,16 +361,13 @@ class Match():
                                 chance += value
         return chance
 
-    def name_compare(self, s1, s2):
-        if self.use_soundex:
-            try:
-                return compare(s1,s2)
-            except UnicodeEncodeError:
-                return s1 == s2
-        else:
-            return s1 == s2
-
     def date_match(self, date1, date2):
+        #FIX so that
+        # 1685-00-00 :: 1685-00-00 = 0.75 just year
+        # 1685-05-00 :: 1685-07-00 = 0.5  olika month
+        # 1685-09-00 :: 1685-09-00 = 0.87 samma month
+        # 1685-10-21 :: 1685-10-21 = 1.0  samma day
+
         if date1.is_empty() or date2.is_empty():
             return 0
         if date1.is_equal(date2):
@@ -398,7 +382,7 @@ class Match():
             if not date1.get_month_valid() or not date2.get_month_valid():
                 return 0.75
             else:
-                return -1
+                return 0.5  # ? Only year match; was -1
         else:
             return -1
 
@@ -426,9 +410,18 @@ class Match():
             else:
                 return -1
 
+    def name_compare(self, s1, s2):
+        if self.use_soundex:
+            try:
+                return compare(s1,s2)
+            except UnicodeEncodeError:
+                return s1 == s2
+        else:
+            return s1 == s2
+
     def name_match(self, name, name1):
 
-        if not name1 or not name:
+        if not name or not name1:
             return 0
 
         srn1 = get_surnames(name)
@@ -436,22 +429,22 @@ class Match():
         srn2 = get_surnames(name1)
         sfx2 = name1.get_suffix()
 
-        if not self.name_compare(srn1,srn2):
+        if not self.name_compare(srn1, srn2): #What if surnames is a list?
             return -1
         if sfx1 != sfx2:
             if sfx1 != "" and sfx2 != "":
                 return -1
 
-        if name.get_first_name() == name1.get_first_name():
+        if name.get_first_name().lower() == name1.get_first_name().lower():
             return 1
         else:
-            list1 = name.get_first_name().split()
-            list2 = name1.get_first_name().split()
+            list1 = name.get_first_name().lower().split()
+            list2 = name1.get_first_name().lower().split()
 
             if len(list1) < len(list2):
-                return self.list_reduce(list1,list2)
+                return self.list_reduce(list1, list2)
             else:
-                return self.list_reduce(list2,list1)
+                return self.list_reduce(list2, list1)
 
     def place_match(self, p1_id, p2_id):
         if p1_id == p2_id:
@@ -461,13 +454,13 @@ class Match():
             name1 = ""
         else:
             p1 = self.db.get_place_from_handle(p1_id)
-            name1 = p1.get_title()
+            name1 = p1.get_title().lower()
 
         if not p2_id:
             name2 = ""
         else:
             p2 = self.db.get_place_from_handle(p2_id)
-            name2 = p2.get_title()
+            name2 = p2.get_title().lower()
 
         if not (name1 and name2):
             return 0
