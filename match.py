@@ -253,7 +253,7 @@ class Match():
 
         value = self.date_match(birth1.get_date_object(),
                                 birth2.get_date_object())
-        #print("%s :: %s = %s" % (birth1.get_date_object(), birth2.get_date_object(), value))
+        print("%s :: %s = %s" % (birth1.get_date_object(), birth2.get_date_object(), value))
         if value == -1 :
             return -1
         chance += value
@@ -363,26 +363,27 @@ class Match():
 
     def date_match(self, date1, date2):
         #FIX so that
+        # 1712-12-03 :: 1715-10-02 = -1.0 Different year
+        # 0000-00-00 :: 0000-00-00 = 0.0  No data
         # 1685-00-00 :: 1685-00-00 = 0.75 just year
-        # 1685-05-00 :: 1685-07-00 = 0.5  olika month
-        # 1685-09-00 :: 1685-09-00 = 0.87 samma month
-        # 1685-10-21 :: 1685-10-21 = 1.0  samma day
+        # 1685-05-00 :: 1685-07-00 = 0.5  different month
+        # 1685-09-00 :: 1685-09-00 = 0.87 same month
+        # 1685-10-21 :: 1685-10-21 = 1.0  identical
 
         if date1.is_empty() or date2.is_empty():
             return 0
-        if date1.is_equal(date2):
-            return 1
-
         if date1.is_compound() or date2.is_compound():
             return self.range_compare(date1,date2)
-
-        if date1.get_year() == date2.get_year():
-            if date1.get_month() == date2.get_month():
-                return 0.75
+        if date1.match(date2) and ( date1.get_year() == date2.get_year() ):
             if not date1.get_month_valid() or not date2.get_month_valid():
                 return 0.75
+            if date1.get_month() == date2.get_month():
+                if (date1.get_day() == date2.get_day()) and date1.get_day_valid() and date2.get_day_valid():
+                    return 1.0
+                else:
+                    return 0.87
             else:
-                return 0.5  # ? Only year match; was -1
+                return 0.75
         else:
             return -1
 
