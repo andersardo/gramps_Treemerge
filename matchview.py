@@ -41,7 +41,6 @@ from gi.repository import GooCanvas
 # Gramps modules
 #
 #-------------------------------------------------------------------------
-from gramps.gui.managedwindow import ManagedWindow
 from gramps.gen.constfunc import win
 #-------------------------------------------------------------------------
 #
@@ -51,10 +50,8 @@ from gramps.gen.constfunc import win
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from ftDatabase import fulltextDatabase
 
-#class ViewPersonMatch(ManagedWindow): INTE ManagedWindow
 class ViewPersonMatch():
     def __init__(self, dbstate, uistate, canvas, track, p1_handle, p2_handle, callback):
-        #ManagedWindow.__init__(self, uistate, track, self.__class__)
         self.dbstate = dbstate
         self.uistate = uistate
         self.canvas = canvas
@@ -63,7 +60,6 @@ class ViewPersonMatch():
         self.p1_handle = p1_handle
         self.p2_handle = p2_handle
         self.retest_font = True     # flag indicates need to resize font
-        #print('View',  self.p1_handle,  self.p2_handle)
         """
         #scrolled_win = Gtk.ScrolledWindow()
         scrolled_win = top.get_object('scrwin')
@@ -158,9 +154,6 @@ class ViewPersonMatch():
 
     def close(self):
         pass # ??
-
-#    def cancel(self, *obj):
-#        ManagedWindow.close(self, *obj)
 
     def zoom_in(self, _button=None):
         """
@@ -326,11 +319,15 @@ class ViewPersonMatch():
         Perform actions when a node is clicked.
         If middle mouse was clicked then try to set scroll mode.
         """
+        handle = item.title #gramps id
+        node_class = item.description  # 'node', 'familynode'
+        button = event.get_button()[1]  # mouse button 1,2,3
+
         return False
 
 #-------------------------------------------------------------------------
 #
-# GraphvizSvgParser
+# GraphvizSvgParser (from GraphView)
 #
 #-------------------------------------------------------------------------
 class GraphvizSvgParser(object):
@@ -731,135 +728,9 @@ class GraphvizSvgParser(object):
         style = style.rstrip(';')
         return dict([i.split(':') for i in style.split(';')])
 
-# AA0 start
 #------------------------------------------------------------------------
 #
-# TreeNode and Tree
-#    Used to build compare graph
-#
-#------------------------------------------------------------------------
-class TreeNode:
-    def __init__(self, person_handle, level=0):
-        self.families = {} # key family_handle; content set of handles for
-                           #         'spouses', 'children', 'parents'
-        self.fathers = []
-        self.mothers = []
-        self.parents = []    # list of Node
-        self.spouses = []    # list of Node
-        self.children = []   # list of Node
-        self.person_handle = person_handle
-        self.level = level
-
-    # Insert Nodes
-    def insertFather(self, person_handle, family_handle):
-        p_node = self.insertParent(person_handle, family_handle)
-        self.fathers.append(person_handle)
-        return p_node
-
-    def insertMother(self, person_handle, family_handle):
-        p_node = self.insertParent(person_handle, family_handle)
-        self.mothers.append(person_handle)
-        return p_node
-
-    def insertParent(self, person_handle, family_handle):
-        parent_node = TreeNode(person_handle, self.level + 1)
-        self.parents.append(parent_node)
-        if family_handle not in self.families:
-            self.families[family_handle] ={'spouses': set(), 'children': set(), 'parents': set()}
-        self.families[family_handle]['parents'].add(person_handle)
-        return parent_node
-
-    def insertSpouse(self, person_handle, family_handle):
-        spouse_node = TreeNode(person_handle, self.level)
-        self.spouses.append(spouse_node)
-        if family_handle not in self.families:
-            self.families[family_handle] ={'spouses': set(), 'children': set(), 'parents': set()}
-        self.families[family_handle]['spouses'].add(person_handle)
-        return spouse_node
-
-    def insertChild(self, person_handle, family_handle):
-        child_node = TreeNode(person_handle, self.level - 1)
-        self.children.append(child_node)
-        if family_handle not in self.families:
-            self.families[family_handle] ={'spouses': set(), 'children': set(), 'parents': set()}
-        self.families[family_handle]['children'].add(person_handle)
-        return child_node
-
-class Tree:
-    def __init__(self, db, ancestor_generations=2):
-        self.db = db
-        self.id_list = set() # (id, level) id is handle prepended with either 'P' or 'F' ?? FIX!!
-        self.links = set() # (from_id, to_id, clusterid)
-        self.cluster_cnt = 1 # Use as unique id for clusters
-        self.main_person_handle = None
-        self.main_person_treenode = None
-        self.ancestor_generations = 2 # FIX ancestor_generations
-
-    def BuildTree(self, person_handle):
-        self.main_person_handle = person_handle
-        self.id_list.add((self.main_person_handle, 0))
-        self.main_person_treenode = TreeNode(person_handle)
-        self.populateTreeAncestors(self.main_person_treenode, 1)  # ancestors
-        # Add families (spouse and children) only for main person
-        person = self.db.get_person_from_handle(self.main_person_handle)
-        for family_handle in person.get_family_handle_list():
-            family = self.db.get_family_from_handle(family_handle)
-            if family:
-                self.links.add((self.main_person_handle, family_handle, "Cluster_%s" % self.main_person_handle)) # person -> family
-                # from find_children
-                for child_ref in family.get_child_ref_list():
-                    self.main_person_treenode.insertChild(child_ref.ref, family_handle)
-                    self.id_list.add((child_ref.ref, -1))
-                    self.id_list.add((family_handle, None))
-                    self.links.add((family_handle, child_ref.ref, None)) # family -> child
-                # Spouses
-                m_handle = family.get_mother_handle()
-                if m_handle and m_handle != self.main_person_handle:
-                    self.main_person_treenode.insertSpouse(m_handle, family_handle)
-                    self.id_list.add((m_handle, 0))
-                    self.id_list.add((family_handle, None))
-                    self.links.add((m_handle, family_handle, "Cluster_%s" % self.main_person_handle)) # parent -> family
-                f_handle = family.get_father_handle()
-                if f_handle and f_handle != self.main_person_handle:
-                    self.main_person_treenode.insertSpouse(f_handle, family_handle)
-                    self.id_list.add((f_handle, 0))
-                    self.id_list.add((family_handle, None))
-                    self.links.add((f_handle, family_handle, "Cluster_%s" % self.main_person_handle)) # parent -> family
-
-    def populateTreeAncestors(self, treenode, level):
-        if level >= self.ancestor_generations: return
-        handle = treenode.person_handle
-        person = self.db.get_person_from_handle(handle)
-        cl_handle = "cluster_%d" % self.cluster_cnt
-        self.cluster_cnt += 1
-        for family_handle in person.get_parent_family_handle_list():
-            family = self.db.get_family_from_handle(family_handle)
-            father_handle = family.get_father_handle()
-            mother_handle = family.get_mother_handle()
-            if father_handle:
-                 p_node = treenode.insertFather(father_handle, family_handle)
-                 self.id_list.add((father_handle, level))
-                 self.id_list.add((family_handle, None))
-                 self.links.add((father_handle, family_handle, cl_handle)) # parent -> family
-                 self.links.add((family_handle, handle, None)) # family -> person
-                 self.populateTreeAncestors(p_node, level + 1)
-            if mother_handle:
-                 p_node = treenode.insertMother(mother_handle, family_handle)
-                 self.id_list.add((mother_handle, level))
-                 self.id_list.add((family_handle, None))
-                 self.links.add((mother_handle, family_handle, cl_handle)) # parent -> family
-                 self.links.add((family_handle, handle, None)) # family -> person
-                 self.populateTreeAncestors(p_node, level + 1)
-
-    def get_id_list(self):
-        return self.id_list
-
-    def get_link_list(self):
-        return self.links
-
-#------------------------------------------------------------------------
-#
-# DotSvgGenerator
+# DotSvgGenerator (based on GraphView)
 #
 #------------------------------------------------------------------------
 
@@ -874,10 +745,8 @@ class DotSvgGenerator(object):
         self.bold_size = bold_size
         self.norm_size = norm_size
         self.dbstate = dbstate
-        #self.uistate = view.uistate
         self.database = dbstate.db
         self.ftdb = fulltextDatabase(writer=False)
-        #self.view = view
 
         self.dot = None         # will be StringIO()
 
@@ -953,6 +822,7 @@ class DotSvgGenerator(object):
         self.fontsize = font[1]
         ######################CONF
         """
+
         if not self.bold_size:
             self.bold_size = self.norm_size = 14 #font[1]
         self.arrowheadstyle = 'none'
@@ -1006,9 +876,6 @@ class DotSvgGenerator(object):
             self.write(' node [style=filled fontsize=%3.1f fontcolor="%s"];\n'
                        % (self.norm_size, font_color))
         self.write('\n')
-        #self.uistate.connect('font-changed', self.font_changed)
-        #self.symbols = Symbols()
-        #self.font_changed()
 
     def resolve_font_name(self, font_name):
         """
@@ -1145,7 +1012,7 @@ class DotSvgGenerator(object):
         parents = []
         fam_handle = None
         try:
-            fam_handle = person.get_parent_family_handle_list()[0]
+            fam_handle = person.get_parent_family_handle_list()[0] #f1_id = p1.get_main_parents_family_handle()?
             if fam_handle:
                 family = self.dbstate.db.get_family_from_handle(fam_handle)
                 if family:
