@@ -30,7 +30,7 @@
           <object class="GtkButtonBox">
             <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="layout-style">start</property>
+            <property name="layout-style">expand</property>
             <child>
               <object class="GtkButton" id="grinfo">
                 <property name="label">gtk-info</property>
@@ -62,6 +62,29 @@
               </packing>
             </child>
             <child>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="label" translatable="yes">...</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkButton" id="grclose">
                 <property name="label">gtk-close</property>
                 <property name="use-action-appearance">False</property>
@@ -69,11 +92,13 @@
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
                 <property name="use-stock">True</property>
+                <property name="image-position">right</property>
               </object>
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">2</property>
+                <property name="pack-type">end</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
@@ -102,11 +127,12 @@
         <property name="spacing">2</property>
         <child internal-child="action_area">
           <object class="GtkButtonBox">
+            <property name="visible">True</property>
             <property name="can-focus">False</property>
-            <property name="layout-style">end</property>
+            <property name="layout-style">expand</property>
             <child>
-              <object class="GtkButton" id="closebtn">
-                <property name="label">gtk-close</property>
+              <object class="GtkButton" id="infobtn">
+                <property name="label">gtk-info</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -132,8 +158,30 @@
               </packing>
             </child>
             <child>
-              <object class="GtkButton" id="infobtn">
-                <property name="label">gtk-info</property>
+              <object class="GtkLabel">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparator">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">True</property>
+                <property name="fill">True</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkButton" id="closebtn">
+                <property name="label">gtk-close</property>
                 <property name="visible">True</property>
                 <property name="can-focus">True</property>
                 <property name="receives-default">True</property>
@@ -142,14 +190,15 @@
               <packing>
                 <property name="expand">True</property>
                 <property name="fill">True</property>
-                <property name="position">3</property>
+                <property name="pack-type">end</property>
+                <property name="position">4</property>
               </packing>
             </child>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="position">0</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
           </packing>
         </child>
         <child>
