@@ -22,8 +22,9 @@ class fulltextDatabase():
         self.parser = qparser.QueryParser('person', schema=schema, group=qparser.OrGroup)
 
     def cleanText(self, text):
+        #lower case
         #ersätta alla icke-bokstäver med blanktecken
-        text = re.sub('[^\s\w]|\d|_', ' ', text.lower())  #EVT göra detta i postgresql??
+        text = re.sub('[^\s\w]|\d|_', ' ', text.lower())
         return text
     
     def addDocument(self, grampsHandle, text, sex=''):
