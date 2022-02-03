@@ -253,7 +253,7 @@ class Match():
 
         value = self.date_match(birth1.get_date_object(),
                                 birth2.get_date_object())
-        print("%s :: %s = %s" % (birth1.get_date_object(), birth2.get_date_object(), value))
+        #print("%s :: %s = %s" % (birth1.get_date_object(), birth2.get_date_object(), value))
         if value == -1 :
             return -1
         chance += value
