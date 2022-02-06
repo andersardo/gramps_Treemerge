@@ -319,9 +319,12 @@ class ViewPersonMatch():
         Perform actions when a node is clicked.
         If middle mouse was clicked then try to set scroll mode.
         """
-        handle = item.title #gramps id
+        grampsId = item.title #gramps id
         node_class = item.description  # 'node', 'familynode'
         button = event.get_button()[1]  # mouse button 1,2,3
+        #Change active for view in main window
+        clickedPerson = self.dbstate.db.get_person_from_gramps_id(grampsId)
+        self.uistate.set_active(clickedPerson.handle, 'Person')
 
         return False
 
