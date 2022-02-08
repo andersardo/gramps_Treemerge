@@ -1039,38 +1039,61 @@ class DotSvgGenerator(object):
         self.color = '#bed6dc' #green for main match
         done = []
         p1 = self.database.get_person_from_handle(p1_handle)
-        self.person_node(p1)
-        done.append(p1.gramps_id)
         p2 = self.database.get_person_from_handle(p2_handle)
-        self.person_node(p2)
-        done.append(p2.gramps_id)
         self.write('subgraph TMP1{ style="invis";')
         self.add_link(p1.gramps_id, p2.gramps_id, style='dashed')
         self.write('{rank = same; _%s; _%s;}\n' % (p1.gramps_id, p2.gramps_id))
         self.write('}\n')
         self.color =  '#a5cafb' #Blue for p1
         for p in (p1, p2):
+            self.person_node(p)
+            done.append(p.gramps_id)
+            #Parents of p
+            family_handle = p.get_main_parents_family_handle()
+            if family_handle:
+                fam = self.database.get_family_from_handle(family_handle)
+                self.add_link(fam.gramps_id, p.gramps_id)
+                (parent_fam_handle, parents) = self.find_parents(p.handle)
+                if parent_fam_handle:
+                    parent_fam = self.database.get_family_from_handle(parent_fam_handle)
+                    if parent_fam.gramps_id not in done:
+                        self.family_node(parent_fam)
+                        done.append(parent_fam.gramps_id)
+                    self.add_link(parent_fam.gramps_id, p.gramps_id)
+                for parent_handle in parents:
+                    parent = self.database.get_person_from_handle(parent_handle)
+                    if parent.gramps_id not in done:
+                        self.person_node(parent)
+                        done.append(parent.gramps_id)
+                    if parent:
+                        self.add_link(parent.gramps_id, parent_fam.gramps_id)
+            # Family of p (spouse, children)
             for family_handle in p.get_family_handle_list():
                 fam = self.database.get_family_from_handle(family_handle)
-                if fam.gramps_id in done: continue
+                if fam.gramps_id in done:
+                    continue
                 self.family_node(fam)
+                self.add_link(p.gramps_id, fam.gramps_id)
                 done.append(fam.gramps_id)
-                father_handle = fam.get_father_handle()
-                if father_handle:
-                    father = self.database.get_person_from_handle(father_handle)
-                    if father.gramps_id not in done:
-                        self.person_node(father)
-                        done.append(father.gramps_id)
-                    if father:
-                        self.add_link(father.gramps_id, fam.gramps_id)
-                        #father parents
-                        (parent_fam_handle, parents) = self.find_parents(father_handle)
+                #Spouse of p
+                spouse_handle = fam.get_father_handle()
+                if spouse_handle == p.handle:
+                    spouse_handle = fam.get_mother_handle()
+                if spouse_handle:
+                    spouse = self.database.get_person_from_handle(spouse_handle)
+                    if spouse.gramps_id not in done:
+                        self.person_node(spouse)
+                        done.append(spouse.gramps_id)
+                    if spouse:
+                        self.add_link(spouse.gramps_id, fam.gramps_id)
+                        #spouse parents
+                        (parent_fam_handle, parents) = self.find_parents(spouse_handle)
                         if parent_fam_handle:
                             parent_fam = self.database.get_family_from_handle(parent_fam_handle)
                             if parent_fam.gramps_id not in done:
                                 self.family_node(parent_fam)
                                 done.append(parent_fam.gramps_id)
-                            self.add_link(parent_fam.gramps_id, father.gramps_id)
+                            self.add_link(parent_fam.gramps_id, spouse.gramps_id)
                         for parent_handle in parents:
                             parent = self.database.get_person_from_handle(parent_handle)
                             if parent.gramps_id not in done:
@@ -1078,31 +1101,7 @@ class DotSvgGenerator(object):
                                 done.append(parent.gramps_id)
                             if parent:
                                 self.add_link(parent.gramps_id, parent_fam.gramps_id)
-                    
-                mother_handle = fam.get_mother_handle()
-                if mother_handle:
-                    mother = self.database.get_person_from_handle(mother_handle)
-                    if mother.gramps_id not in done:
-                        self.person_node(mother)
-                        done.append(mother.gramps_id)
-                    if mother:
-                        self.add_link(mother.gramps_id, fam.gramps_id)
-                        #mother parents
-                        (parent_fam_handle, parents) = self.find_parents(mother_handle)
-                        if parent_fam_handle:
-                            parent_fam = self.database.get_family_from_handle(parent_fam_handle)
-                            if parent_fam.gramps_id not in done:
-                                self.family_node(parent_fam)
-                                done.append(parent_fam.gramps_id)
-                            self.add_link(parent_fam.gramps_id, mother.gramps_id)
-                        for parent_handle in parents:
-                            parent = self.database.get_person_from_handle(parent_handle)
-                            if parent.gramps_id not in done:
-                                self.person_node(parent)
-                                done.append(parent.gramps_id)
-                            if parent:
-                                self.add_link(parent.gramps_id, parent_fam.gramps_id)
-
+                # children of p
                 for child_ref in fam.get_child_ref_list():
                     child = self.database.get_person_from_handle(child_ref.ref)
                     if child.gramps_id not in done:
