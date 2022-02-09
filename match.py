@@ -23,6 +23,8 @@
 
 import sys
 import os
+from joblib import load #??pickle??
+
 sys.path.insert(0, '/share/work/Gramps/work') #TMP!!
 
 #-------------------------------------------------------------------------
@@ -45,6 +47,7 @@ _ = glocale.translation.sgettext
 #-------------------------------------------------------------------------
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from ftDatabase import fulltextDatabase
+from features import Features
 
 #-------------------------------------------------------------------------
 #
@@ -81,6 +84,8 @@ class Match():
         self.use_soundex = use_soundex
         self.threshold = threshold
         self.ftdb = None
+        self.features = Features(self.db)
+        self.clf = load(os.path.abspath(os.path.dirname(__file__)) + '/modelV3.pkl')
 
     def ancestors_of(self, p1_id, id_list):
         if (not p1_id) or (p1_id in id_list):
@@ -163,7 +168,7 @@ class Match():
         length = self.db.get_number_of_people()
         self.progress.set_pass(_('Pass 2: Calculating potential matches'), length)
 
-        done = []
+        done = [] #use set?
         for p1key in self.db.iter_person_handles():
             self.progress.step()
             p1 = self.db.get_person_from_handle(p1key)
@@ -184,9 +189,12 @@ class Match():
                 done.append((p1key, p2key))
                 done.append((p2key, p1key))
                 p2 = self.db.get_person_from_handle(p2key)
-                chance = self.compare_people(p1, p2) / 6.5  # FIX use SVM-matching ?? MAX_CHANCE = 6.5 ??
-                combined_score = score * chance
-                score = combined_score
+                #chance = self.compare_people(p1, p2) / 6.5  # FIX use SVM-matching ?? MAX_CHANCE = 6.5 ??
+                #combined_score = score * chance
+                #score = combined_score
+                features = self.features.getFeatures(p1, p2, score)
+                score = self.clf.predict_proba([features])[0][1]
+                #score = features[1] + features[8] #personSim, familySim
                 if score >= thresh:
                     if p1key in self.my_map:
                         val = self.my_map[p1key]
@@ -253,7 +261,6 @@ class Match():
 
         value = self.date_match(birth1.get_date_object(),
                                 birth2.get_date_object())
-        #print("%s :: %s = %s" % (birth1.get_date_object(), birth2.get_date_object(), value))
         if value == -1 :
             return -1
         chance += value
