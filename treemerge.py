@@ -100,7 +100,7 @@ def is_initial(name):
 # The Actual tool.
 #
 #-------------------------------------------------------------------------
-class TreeMerge(tool.Tool, ManagedWindow):
+class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using automated merge
 
     def __init__(self, dbstate, user, options_class, name, callback=None):
         uistate = user.uistate
@@ -117,7 +117,6 @@ class TreeMerge(tool.Tool, ManagedWindow):
         self.merger = None
         self.mergee = None
         self.removed = {}
-        self.use_soundex = 1
         self.dellist = set()
         self.length = len(self.list)
         self.p1 = None
@@ -134,7 +133,7 @@ class TreeMerge(tool.Tool, ManagedWindow):
             my_menu.append([_val2label[val], val])
 
         self.soundex_obj = top.get_object("soundex1")
-        self.soundex_obj.set_active(self.use_soundex)
+        self.soundex_obj.set_active(1) # Default value
         self.soundex_obj.show()
 
         self.menu = top.get_object("menu1")
@@ -143,9 +142,9 @@ class TreeMerge(tool.Tool, ManagedWindow):
 
         mlist = top.get_object("mlist1")
         mtitles = [
-            (_('Rating'),3,75),
-            (_('First Person'),1,200),
-            (_('Second Person'),2,200),
+            (_('Rating'), 3, 75),
+            (_('First Person'), 1, 300),
+            (_('Second Person'), 2, 300),
             ('',-1,0)
         ]
         self.mlist = ListModel(mlist, mtitles, event_func=self.do_merge)
@@ -187,12 +186,12 @@ class TreeMerge(tool.Tool, ManagedWindow):
 
     def do_match(self, obj):
         threshold = self.menu.get_model()[self.menu.get_active()][1]
-        self.use_soundex = int(self.soundex_obj.get_active())
+        use_soundex = int(self.soundex_obj.get_active())
         self.progress = ProgressMeter(_('Find matches for persons'),
                                       _('Looking for duplicate/matching people'),
                                       parent=self.window)
 
-        matcher = Match(self.dbstate.db, self.progress, self.use_soundex, threshold)
+        matcher = Match(self.dbstate.db, self.progress, use_soundex, threshold)
         try:
             matcher.do_find_matches()
             self.map = matcher.map
@@ -202,7 +201,7 @@ class TreeMerge(tool.Tool, ManagedWindow):
             return
 
         self.options.handler.options_dict['threshold'] = threshold
-        self.options.handler.options_dict['soundex'] = self.use_soundex
+        self.options.handler.options_dict['soundex'] = use_soundex
         # Save options
         self.options.handler.save_options()
         self.length = len(self.list)
@@ -364,8 +363,8 @@ class TreeMergeOptions(tool.ToolOptions):
     Defines options and provides handling interface.
     """
 
-    def __init__(self, name,person_id=None):
-        tool.ToolOptions.__init__(self, name,person_id)
+    def __init__(self, name, person_id=None):
+        tool.ToolOptions.__init__(self, name, person_id)
 
         # Options specific for this report
         self.options_dict = {
