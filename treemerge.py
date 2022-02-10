@@ -77,6 +77,12 @@ _val2label = {
     0.75  : _("Medium"),
     0.9  : _("High"),
     }
+ALGORITM_SCORE = 1
+ALGORITM_SVM = 2
+_alg2label = {
+    ALGORITM_SCORE: _("Score"),
+    ALGORITM_SVM: _("SVM")
+    }
 
 #WIKI_HELP_PAGE = '%s_-_Tools' % URL_MANUAL_PAGE
 #WIKI_HELP_SEC = _('Find_Possible_Duplicate_People', 'manual')
@@ -122,15 +128,20 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         self.p1 = None
         self.p2 = None
 
-        top = Glade(toplevel="treemerge", also_load=["liststore1"])
+        top = Glade(toplevel="treemerge", also_load=["liststore1", "liststore2"])
 
         # retrieve options
         threshold = self.options.handler.options_dict['threshold']
         use_soundex = self.options.handler.options_dict['soundex']
-
+        algoritm = self.options.handler.options_dict['algoritm']
+        
         my_menu = Gtk.ListStore(str, object)
         for val in sorted(_val2label, reverse=True):
             my_menu.append([_val2label[val], val])
+
+        my_algmenu = Gtk.ListStore(str, object)
+        for val in sorted(_alg2label, reverse=True):
+            my_algmenu.append([_alg2label[val], val])
 
         self.soundex_obj = top.get_object("soundex1")
         self.soundex_obj.set_active(1) # Default value
@@ -139,6 +150,10 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         self.menu = top.get_object("menu1")
         self.menu.set_model(my_menu)
         self.menu.set_active(0)
+
+        self.algmenu = top.get_object("algoritmMenu")
+        self.algmenu.set_model(my_algmenu)
+        self.algmenu.set_active(0)
 
         mlist = top.get_object("mlist1")
         mtitles = [
@@ -153,7 +168,7 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         window = top.toplevel
         self.set_window(window, top.get_object('title'),
                         _('Find/Merge Probably Identical Persons'))
-        self.setup_configs('interface.duplicatepeopletool', 350, 220) #???
+        self.setup_configs('interface.duplicatepeopletool', 350, 220)
         infobtn = top.get_object("infobtn")
         infobtn.connect('clicked', self.info)
         matchbtn = top.get_object("matchbtn")
@@ -187,11 +202,12 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
     def do_match(self, obj):
         threshold = self.menu.get_model()[self.menu.get_active()][1]
         use_soundex = int(self.soundex_obj.get_active())
+        algoritm = self.algmenu.get_model()[self.algmenu.get_active()][1]
         self.progress = ProgressMeter(_('Find matches for persons'),
                                       _('Looking for duplicate/matching people'),
                                       parent=self.window)
 
-        matcher = Match(self.dbstate.db, self.progress, use_soundex, threshold)
+        matcher = Match(self.dbstate.db, self.progress, use_soundex, threshold, algoritm)
         try:
             matcher.do_find_matches()
             self.map = matcher.map
@@ -370,6 +386,7 @@ class TreeMergeOptions(tool.ToolOptions):
         self.options_dict = {
             'soundex'   : 1,
             'threshold' : 0.75,
+            'algoritm': ALGORITM_SCORE,
         }
         self.options_help = {
             'soundex'   : ("=0/1","Whether to use SoundEx codes",

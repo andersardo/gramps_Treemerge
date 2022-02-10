@@ -75,7 +75,7 @@ def is_initial(name):
         return name[0] == name[0].upper()
 
 class Match():
-    def __init__(self, db, progress, use_soundex, threshold):
+    def __init__(self, db, progress, use_soundex, threshold, algoritm):
         self.db = db
         self.progress = progress
         self.my_map = {}
@@ -83,6 +83,7 @@ class Match():
         self.index = 0
         self.use_soundex = use_soundex
         self.threshold = threshold
+        self.algoritm = algoritm
         self.ftdb = None
         self.features = Features(self.db)
         self.clf = load(os.path.abspath(os.path.dirname(__file__)) + '/modelV3.pkl')
@@ -162,7 +163,7 @@ class Match():
             self.ftdb.index(p1, birthDate, birthPlace, deathDate, deathPlace) #extracts names, clean text
         self.ftdb.commitIndex() # generates family index aswell (not done yet)
 
-    def find_potentials(self, thresh):
+    def find_potentials(self, threshold):
         self.map = {}
         self.my_map = {}
         length = self.db.get_number_of_people()
@@ -189,13 +190,15 @@ class Match():
                 done.append((p1key, p2key))
                 done.append((p2key, p1key))
                 p2 = self.db.get_person_from_handle(p2key)
-                #chance = self.compare_people(p1, p2) / 6.5  # FIX use SVM-matching ?? MAX_CHANCE = 6.5 ??
-                #combined_score = score * chance
-                #score = combined_score
-                features = self.features.getFeatures(p1, p2, score)
-                score = self.clf.predict_proba([features])[0][1]
+                if self.algoritm == 1: #FIX better way of selecting algoritm
+                    chance = self.compare_people(p1, p2) / 6.5  # MAX_CHANCE = 6.5 ??
+                    combined_score = score * chance
+                    score = combined_score
+                else:
+                    features = self.features.getFeatures(p1, p2, score)
+                    score = self.clf.predict_proba([features])[0][1]
                 #score = features[1] + features[8] #personSim, familySim
-                if score >= thresh:
+                if score >= threshold:
                     if p1key in self.my_map:
                         val = self.my_map[p1key]
                         if val[1] < score:
@@ -208,21 +211,6 @@ class Match():
         self.list = sorted(self.map)
         self.length = len(self.list)
         self.progress.close()
-
-    def compare_people_svm(self, p1, p2, score):
-        #Not ready to use!
-
-        #Move to __init__
-        from features import getFeatures
-        #versionsproblem FIX
-        from sklearn import svm
-        clf = svm.SVC(kernel='rbf', gamma='auto', C=1.0, probability=True)  # Radial basis
-        self.clf = load('facit/model.joblib_20200520')  # Need to retrain a new model
-        #
-
-        features = getFeatures(p1, p2, score)  #FIX
-        probability = self.clf.predict_proba([features])[0][1]
-        return probability
 
     def compare_people(self, p1, p2):
         # from Gramps find Duplicate
