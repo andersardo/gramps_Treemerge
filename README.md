@@ -9,30 +9,29 @@ The implementation borrows a lot from Gramps plugins as GraphView and 'Find Poss
       and index that in a free-text database
   * Use a person text-representation as a query to the free-text database
   * Test the top X results more detailed for a possible match
-  * Use a machine-learning tool like SVM to categorise matches 
+  * Use a machine-learning tool like SVM to categorise matches. SVM can give a probability
+    that a match is an exact match 
 
 The above design avoids the need to compare all persons to all other persons thus cutting the algorithm complexity from
 n-squared to k * n where n is the number of persons in the database and k is an implementation dependent constant.
 
 Matches can be grouped in 3 categories 'certain match', 'maybe', 'certain nomatch' where only 'maybe'
 needs to be inspected manually.
-SVM can give you a probability that a match is an exact match and the idea is use this probability to group matches. 
-
-SVM categorisation is based on 'feature vectors' where features usually range from -1 (complete miss-match) to
-1 (complete match):
-  * 'score' How good a hit from the free-text database is
-  * 'personSim', Similarity of persons based on name and date comparisons
-  * 'familySim', Mean of similarity for father and mother
-  * 'birthSim', Similarity of birth-date and birth-place
-  * 'birthYearSim', Birth years equal
-  * 'deathSim', Similarity of death-date and death-place
-  * 'deathYearSim', Death years equal
-  * 'compareLifeSpans' (experimental) Test if one person is born after the other is dead or more than 110 years later
-  * 'firstNameSim', Name equality
-  * 'firstNameStrSim', String similarity of all names sorted and concatenated in a string
-  * 'lastNameSim', Name equality
 
 A 'certain match' would be where a SVM calculated probability is above 90 - 95 % of being an exact match. 
+
+SVM categorisation is based on 'feature vectors' where features usually range from -1 (complete miss-match) to
+1 (complete match). Features used are:
+  * _score_, How good a hit from the free-text database is
+  * _personSim_, Similarity of persons based on name and event-date comparisons
+  * _familySim_, Mean of similarity for father and mother
+  * _birthSim_, Similarity of birth-date and birth-place
+  * _birthYearSim_, Birth years equal
+  * _deathSim_, Similarity of death-date and death-place
+  * _deathYearSim_, Death years equal
+  * _firstNameSim_, Name equality
+  * _firstNameStrSim_, String similarity of all names sorted and concatenated in a string
+  * _lastNameSim_, Name equality
 
 ## TODO/IDEAS
 
