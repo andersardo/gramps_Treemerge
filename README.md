@@ -9,8 +9,11 @@ The implementation borrows a lot from Gramps plugins as GraphView and 'Find Poss
       and index that in a free-text database
   * Use a person text-representation as a query to the free-text database
   * Test the top X results more detailed for a possible match
-  * Use a machine-learning tool like SVM to categorise matches. SVM can give a probability
-    that a match is an exact match 
+  * Use a machine-learning tool like SVM to categorise matches. SVM is a machine-learning tool that you
+    train to recognize and group objects (feature vectors) into categories.
+    In this case feature vectors are comparisons between persons and categories are 'match' and 'no match'.
+    A feature vector consists of various aspect like name similarity, event similarity, see below.
+    SVM can give a probability that a match is an exact match 
 
 The above design avoids the need to compare all persons to all other persons thus cutting the algorithm complexity from
 n-squared to k * n where n is the number of persons in the database and k is an implementation dependent constant.
