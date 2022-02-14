@@ -286,8 +286,7 @@
                 </child>
                 <child>
                   <object class="GtkButton" id="automerge">
-                    <property name="label" translatable="yes">Automerge
-full matches</property>
+                    <property name="label" translatable="yes">Automerge</property>
                     <property name="use-action-appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
@@ -368,7 +367,7 @@ full matches</property>
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="halign">start</property>
-                    <property name="label" translatable="yes">Algoritm</property>
+                    <property name="label" translatable="yes">Matching algoritm</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
@@ -433,7 +432,7 @@ full matches</property>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Automerge cutoff</property>
+                    <property name="label" translatable="yes">Automerge rating cutoff</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
@@ -447,7 +446,7 @@ full matches</property>
                   <object class="GtkLabel" id="Score">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Options score-matching</property>
+                    <property name="label" translatable="yes">Options for Score-matching</property>
                   </object>
                   <packing>
                     <property name="left-attach">1</property>
