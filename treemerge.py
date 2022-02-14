@@ -55,6 +55,8 @@ from gramps.gui.dialog import RunDatabaseRepair
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 _ = glocale.translation.sgettext
 from gramps.gui.glade import Glade
+from gramps.gen.merge import MergePersonQuery
+from gramps.gui.dialog import QuestionDialog3
 
 #from libaccess import *
 
@@ -77,13 +79,12 @@ _val2label = {
     0.75  : _("Medium"),
     0.9  : _("High"),
     }
-ALGORITM_SCORE = 1
-ALGORITM_SVM = 2
-_alg2label = {
-    ALGORITM_SCORE: _("Score"),
-    ALGORITM_SVM: _("SVM")
-    }
 
+_automergecutoff = {
+    0.99: "0.99",
+    0.95: "0.95",
+    0.90: "0.90"
+    }
 #WIKI_HELP_PAGE = '%s_-_Tools' % URL_MANUAL_PAGE
 #WIKI_HELP_SEC = _('Find_Possible_Duplicate_People', 'manual')
 
@@ -128,7 +129,7 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         self.p1 = None
         self.p2 = None
 
-        top = Glade(toplevel="treemerge", also_load=["liststore1", "liststore2"])
+        top = Glade(toplevel="treemerge", also_load=["liststore1", "liststore2", "liststore3"])
 
         # retrieve options
         threshold = self.options.handler.options_dict['threshold']
@@ -139,21 +140,32 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         for val in sorted(_val2label, reverse=True):
             my_menu.append([_val2label[val], val])
 
-        my_algmenu = Gtk.ListStore(str, object)
-        for val in sorted(_alg2label, reverse=True):
-            my_algmenu.append([_alg2label[val], val])
+        #my_algmenu = Gtk.ListStore(str, object)
+        #for val in sorted(_alg2label, reverse=True):
+        #    my_algmenu.append([_alg2label[val], val])
+
+        my_automergecutoff = Gtk.ListStore(str, object)
+        for val in sorted(_automergecutoff, reverse=True):
+            my_automergecutoff.append([_automergecutoff[val], val])
 
         self.soundex_obj = top.get_object("soundex1")
-        self.soundex_obj.set_active(1) # Default value
+        self.soundex_obj.set_active(0) # Default value
         self.soundex_obj.show()
 
         self.menu = top.get_object("menu1")
         self.menu.set_model(my_menu)
         self.menu.set_active(0)
 
-        self.algmenu = top.get_object("algoritmMenu")
-        self.algmenu.set_model(my_algmenu)
+        algoritm = Gtk.ListStore(str, object)
+        algoritm. append(["SVM", "svm"])
+        algoritm. append(["Score", "score"])
+        self.algmenu = top.get_object("algoritm")
+        self.algmenu.set_model(algoritm)
         self.algmenu.set_active(0)
+
+        self.automergecutoff = top.get_object("automergecutoff")
+        self.automergecutoff.set_model(my_automergecutoff)
+        self.automergecutoff.set_active(1)
 
         mlist = top.get_object("mlist1")
         mtitles = [
@@ -177,6 +189,9 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         compbtn.connect('clicked', self.do_comp)
         mergebtn = top.get_object("mergebtn")
         mergebtn.connect('clicked', self.do_merge)
+        automergebtn = top.get_object("automerge")
+        automergebtn.connect('clicked', self.do_automerge)
+        automergebtn.set_tooltip_text('WARN automerge')
         closebtn = top.get_object("closebtn")
         closebtn.connect('clicked', self.close)
 
@@ -233,7 +248,7 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
 
     def redraw(self):
         list = []
-        for p1key, p1data in self.map.items():
+        for p1key, p1data in sorted(self.map.items(), key=lambda item: item[1][1], reverse=True):
             if p1key in self.dellist:
                 continue
             (p2key, c) = p1data
@@ -242,7 +257,6 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
             if p1key == p2key:
                 continue
             list.append((c, p1key, p2key))
-
         self.mlist.clear()
         for (c, p1key, p2key) in list:
             c1 = "%5.2f" % c
@@ -251,8 +265,10 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
             p2 = self.db.get_person_from_handle(p2key)
             if not p1 or not p2:
                 continue
-            pn1 = "%s %s" % (p1.gramps_id, name_displayer.display(p1))
-            pn2 = "%s %s" % (p2.gramps_id, name_displayer.display(p2))
+            #pn1 = "%s %s" % (p1.gramps_id, name_displayer.display(p1))
+            #pn2 = "%s %s" % (p2.gramps_id, name_displayer.display(p2))
+            pn1 = name_displayer.display(p1)
+            pn2 = name_displayer.display(p2)
             self.mlist.add([c1, pn1, pn2, c2],(p1key, p2key))
 
     def do_merge(self, obj):
@@ -265,6 +281,35 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2,
                     self.on_update, True)
 
+    def do_automerge(self, obj):
+        cutoff = self.automergecutoff.get_model()[self.automergecutoff.get_active()][1]
+        msg1 = 'Warning'
+        label_msg1 = 'OK'
+        label_msg2 = 'NO thanks'
+        ant = 0
+        matches = []
+        #sort by rating = c
+        for p1key, p1data in sorted(self.map.items(), key=lambda item: item[1][1], reverse=True):
+            if p1key in self.dellist:
+                continue
+            (p2key, c) = p1data
+            if c < cutoff or p2key in self.dellist:
+                continue
+            if p1key == p2key:
+                continue
+            matches.append((p1key, p2key))
+        msg2 = 'You are about to batch merge %d matches with rating above %s' % (len(matches), cutoff)
+        res = QuestionDialog3(msg1, msg2, label_msg1, label_msg2).run()
+        if not res or res == -1: return
+        for (p1key, p2key) in matches:
+            continue #TMP
+            primary = self.dbstate.db.get_person_from_handle(p1key)
+            secondary = self.dbstate.db.get_person_from_handle(p2key)
+            query = MergePersonQuery(self.dbstate.db, primary, secondary)
+            #TMP#query.execute()
+            #Handle names, events: birth, death
+            person = self.dbstate.db.get_person_from_handle(p1key)
+        
     def do_comp(self, obj):
         store, iter = self.mlist.selection.get_selected()
         if not iter:
@@ -384,9 +429,10 @@ class TreeMergeOptions(tool.ToolOptions):
 
         # Options specific for this report
         self.options_dict = {
-            'soundex'   : 1,
+            'soundex'   : 0,
             'threshold' : 0.75,
-            'algoritm': ALGORITM_SCORE,
+            'algoritm': 'svm',
+            'automergecutoff': 0.95
         }
         self.options_help = {
             'soundex'   : ("=0/1","Whether to use SoundEx codes",

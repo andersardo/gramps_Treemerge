@@ -123,6 +123,12 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="liststore3">
+    <columns>
+      <!-- column-name gchararray1 -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkDialog" id="treemerge">
     <property name="can-focus">False</property>
     <property name="type-hint">dialog</property>
@@ -175,17 +181,6 @@
               </packing>
             </child>
             <child>
-              <object class="GtkSeparator">
-                <property name="visible">True</property>
-                <property name="can-focus">False</property>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkButton" id="closebtn">
                 <property name="label">gtk-close</property>
                 <property name="visible">True</property>
@@ -199,6 +194,9 @@
                 <property name="pack-type">end</property>
                 <property name="position">4</property>
               </packing>
+            </child>
+            <child>
+              <placeholder/>
             </child>
           </object>
           <packing>
@@ -256,7 +254,7 @@
               <object class="GtkButtonBox" id="matchesbtns">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="layout-style">start</property>
+                <property name="layout-style">expand</property>
                 <child>
                   <object class="GtkButton" id="cmpbtn">
                     <property name="label" translatable="yes">Compare</property>
@@ -285,6 +283,26 @@
                     <property name="fill">True</property>
                     <property name="position">1</property>
                   </packing>
+                </child>
+                <child>
+                  <object class="GtkButton" id="automerge">
+                    <property name="label" translatable="yes">Automerge
+full matches</property>
+                    <property name="use-action-appearance">False</property>
+                    <property name="visible">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="image-position">right</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="pack-type">end</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
+                <child>
+                  <placeholder/>
                 </child>
               </object>
               <packing>
@@ -350,7 +368,7 @@
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
                     <property name="halign">start</property>
-                    <property name="label" translatable="yes">Options</property>
+                    <property name="label" translatable="yes">Algoritm</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
@@ -386,18 +404,18 @@
                     <property name="can-focus">True</property>
                     <property name="receives-default">False</property>
                     <property name="xalign">0.5</property>
-                    <property name="active">True</property>
                     <property name="draw-indicator">True</property>
                   </object>
                   <packing>
-                    <property name="left-attach">0</property>
+                    <property name="left-attach">1</property>
                     <property name="top-attach">3</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkComboBox" id="algoritmMenu">
+                  <object class="GtkComboBox" id="automergecutoff">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
+                    <property name="hexpand">True</property>
                     <property name="model">liststore2</property>
                     <child>
                       <object class="GtkCellRendererText" id="cellrenderertext"/>
@@ -415,7 +433,7 @@
                   <object class="GtkLabel">
                     <property name="visible">True</property>
                     <property name="can-focus">False</property>
-                    <property name="label" translatable="yes">Algoritm</property>
+                    <property name="label" translatable="yes">Automerge cutoff</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
                     </attributes>
@@ -426,10 +444,33 @@
                   </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkLabel" id="Score">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="label" translatable="yes">Options score-matching</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">1</property>
+                    <property name="top-attach">2</property>
+                  </packing>
                 </child>
                 <child>
-                  <placeholder/>
+                  <object class="GtkComboBox" id="algoritm">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="hexpand">True</property>
+                    <property name="model">liststore3</property>
+                    <child>
+                      <object class="GtkCellRendererText" id="cellrenderertext1"/>
+                      <attributes>
+                        <attribute name="text">0</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="left-attach">0</property>
+                    <property name="top-attach">3</property>
+                  </packing>
                 </child>
               </object>
               <packing>

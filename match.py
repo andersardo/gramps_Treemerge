@@ -190,14 +190,13 @@ class Match():
                 done.append((p1key, p2key))
                 done.append((p2key, p1key))
                 p2 = self.db.get_person_from_handle(p2key)
-                if self.algoritm == 1: #FIX better way of selecting algoritm
+                if self.algoritm == 'score': #FIX better way of selecting algoritm
                     chance = self.compare_people(p1, p2) / 6.5  # MAX_CHANCE = 6.5 ??
                     combined_score = score * chance
                     score = combined_score
-                else:
+                elif self.algoritm == 'svm':
                     features = self.features.getFeatures(p1, p2, score)
                     score = self.clf.predict_proba([features])[0][1]
-                #score = features[1] + features[8] #personSim, familySim
                 if score >= threshold:
                     if p1key in self.my_map:
                         val = self.my_map[p1key]

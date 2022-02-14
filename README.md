@@ -35,6 +35,7 @@ SVM categorisation is based on 'feature vectors' where features usually range fr
   * _firstNameSim_, Name equality
   * _firstNameStrSim_, String similarity of all names sorted and concatenated in a string
   * _lastNameSim_, Name equality
+  * _compareLifeSpans_, Lifespans compatible
 
 ## TODO/IDEAS
 
@@ -43,8 +44,6 @@ SVM categorisation is based on 'feature vectors' where features usually range fr
   (Now there is a limited version that show 1 generation above and below the match)
 
   - Using a full Graphview window with the 2 matched persons as center-person(s) would be ideal
-
-* Merge all 'certain match' without user intervention
 
 * Support family-matching and merging
 
@@ -56,8 +55,15 @@ SVM categorisation is based on 'feature vectors' where features usually range fr
 
 
 ## USE
+**Warning: Data Corruption Risk**
+
+Mass changes mean more potential for mangling the data. Back up your current tree **BEFORE** using this tool to merge.
+If something goes wrong, you will have a way to go back and start over. Make a Gramps XML backup. 
 
 Start Treemerge from the tools menu ('Family Tree Processing' -> 'Merge 2 trees by matching persons')
+
+Possibly select matching algoritm either 'SVM' SVM-based classification matching or
+'score' similar to Gramps score-based matching. Soundex is only used in 'score'-matching.
 
 Press **Match**
 
@@ -74,3 +80,5 @@ Clicking on a person in the graph will set the active person which
 can be usefull if you are using GraphView and want to inspect the families in more detail.
 
 In order to merge the selected matched pair of persons press **Merge**, which will start Gramps normal PersonMerge.
+
+If **Automerge** is pressed all matched pairs with a rating above the selected **Automerge cutoff** will be merged.
