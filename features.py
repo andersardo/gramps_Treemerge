@@ -26,7 +26,9 @@ class Features(): # Evt move to Match?
         #cache of personFeatures with key (handle1, handle2)
         self.cache = {}
         self.featureList = ['score', 'personSim', 'birthSim', 'birthYearSim', 'deathSim', 'deathYearSim',
-                            'firstNameSim', 'lastNameSim', 'familySim']
+                            'firstNameSim', 'lastNameSim', 'familySim', 'firstNameStrSim',
+                            'compareLifeSpans']
+                            #'ParentChild', 'commonFamily']
 
     def get_names(self, name):
         """
@@ -52,7 +54,7 @@ class Features(): # Evt move to Match?
             return (2.0 * len(set(nn1).intersection(nn2)) - len(nn1)) / float(
                 len(nn1))
 
-    def nameStrSim(self, n1, n2):
+    def nameStrSim(self, n1, n2):  #NOT USED??
         """ Compare names: n1 n2 strings, blankspace separated names
             return value between -1 (mismatch) and 1 (match)
             return 0 if any of n1, n2 is empty
@@ -167,6 +169,8 @@ class Features(): # Evt move to Match?
             death = Event()
         return {'birth': birth, 'death': death}
 
+    #Possibly test marriage dates aswell??
+    
     def eventSim(self, ev1, ev2):
         if ev1.is_empty() or ev2.is_empty():
             return 0        
@@ -186,6 +190,48 @@ class Features(): # Evt move to Match?
         else:
             return -1
 
+    def compareLifespans(self, events1, events2):
+        """
+           events1, events2: dict with events for birth and death
+           Test if one born after other is dead
+                   or born more than 110 years (max age?) earlier than other
+        """
+        birth1 = events1['birth']
+        death2 = events2['death']
+        if (birth1.is_empty() or death2.is_empty()) :
+            pass
+        else:
+            birth1Year = birth1.get_date_object().get_year()
+            death2Year = death2.get_date_object().get_year()
+            if birth1Year > death2Year:
+                return -1.0
+            elif death2Year - birth1Year > 110: 
+                return -1.0
+        birth2 = events1['birth']
+        death1 = events2['death']
+        if (birth2.is_empty() or death1.is_empty()) :
+            pass
+        else:
+            birth2Year = birth2.get_date_object().get_year()
+            death1Year = death1.get_date_object().get_year()
+            if birth2Year > death1Year:
+                return -1.0
+            elif death1Year - birth2Year > 110:
+                return -1.0
+        return 1.0
+
+    def ParentChild(self, person1, person2):
+        """
+           Test if there is a parent - child relation between persons
+        """
+        pass
+
+    def CommonFamily(self, person1, person2):
+        """
+           Test if there already is a match in familes (parents or children) of the matched pair
+        """
+        pass
+    
     def familySim(self, person1, person2):
         """
           person1, person2: Gramps Person objects
@@ -234,7 +280,8 @@ class Features(): # Evt move to Match?
         feature = {}
         (first1, last1) = self.get_names(person1.get_primary_name())
         (first2, last2) = self.get_names(person2.get_primary_name())
-        feature['firstNameSim'] = self.nameSim(first1, first2) #self.nameStrSim(first1, first2) #
+        feature['firstNameSim'] = self.nameSim(first1, first2)
+        feature['firstNameStrSim'] = self.strSim(first1, first2)
         feature['lastNameSim'] = self.nameSim(last1, last2) #self.nameStrSim(last1, last2) #
         events1 = self.getEvents(person1)
         events2 = self.getEvents(person2)
@@ -242,6 +289,13 @@ class Features(): # Evt move to Match?
         feature['deathSim'] = self.eventSim(events1['death'], events2['death'])
         feature['birthYearSim'] = self.eventYearSim(events1['birth'], events2['birth'])
         feature['deathYearSim'] = self.eventYearSim(events1['death'], events2['death'])
+        #Compare lifespans (p2 död mer 100 år sennare än p1 född eller död före född)
+        if 'compareLifespans' in self.featureList:
+            feature['compareLifespans'] = self.compareLifespans(events1, events2)
+        if 'ParentChild' in self.featureList:
+            feature['ParentChild'] = self.ParentChild(person1, person2)
+        if 'CommonFamily' in self.featureList:
+            feature['CommonFamily'] = self.CommonFamily(person1, person2)
         boost = 0
         n = 0
         if feature['firstNameSim'] > 0.9:
