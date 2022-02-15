@@ -72,5 +72,5 @@ class fulltextDatabase():
                 if r.score > maxScore: maxScore = r.score
                 if r['grampsHandle'] == handle:
                     continue
-                hits.append({'grampsHandle': r['grampsHandle'], 'score': r.score / maxScore})
+                hits.append({'grampsHandle': r['grampsHandle'], 'score': r.score / maxScore}) #FIX a global maxScore
             return hits
