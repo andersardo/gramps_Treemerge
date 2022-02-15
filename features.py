@@ -27,7 +27,7 @@ class Features(): # Evt move to Match?
         self.cache = {}
         self.featureList = ['score', 'personSim', 'birthSim', 'birthYearSim', 'deathSim', 'deathYearSim',
                             'firstNameSim', 'lastNameSim', 'familySim', 'firstNameStrSim',
-                            'compareLifeSpans']
+                            'compareLifespans']
                             #'ParentChild', 'commonFamily']
 
     def get_names(self, name):
