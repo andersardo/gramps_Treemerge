@@ -56,7 +56,7 @@ from gramps.gen.const import GRAMPS_LOCALE as glocale
 _ = glocale.translation.sgettext
 from gramps.gui.glade import Glade
 from gramps.gen.merge import MergePersonQuery
-from gramps.gui.dialog import QuestionDialog3
+from gramps.gui.dialog import QuestionDialog2
 
 #from libaccess import *
 
@@ -299,16 +299,15 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
                 continue
             matches.append((p1key, p2key))
         msg2 = 'You are about to batch merge %d matches with rating above %s' % (len(matches), cutoff)
-        res = QuestionDialog3(msg1, msg2, label_msg1, label_msg2).run()
-        if not res or res == -1: return
+        res = QuestionDialog2(msg1, msg2, label_msg1, label_msg2).run()
+        if not res: return #False
         for (p1key, p2key) in matches:
-            continue #TMP
             primary = self.dbstate.db.get_person_from_handle(p1key)
             secondary = self.dbstate.db.get_person_from_handle(p2key)
             query = MergePersonQuery(self.dbstate.db, primary, secondary)
-            #TMP#query.execute()
+            query.execute()
             #Handle names, events: birth, death
-            person = self.dbstate.db.get_person_from_handle(p1key)
+            #person = self.dbstate.db.get_person_from_handle(p1key)
         
     def do_comp(self, obj):
         store, iter = self.mlist.selection.get_selected()
