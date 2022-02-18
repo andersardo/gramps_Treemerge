@@ -28,6 +28,7 @@ from io import StringIO
 from subprocess import Popen, PIPE
 from xml.parsers.expat import ParserCreate
 from html import escape
+from collections import defaultdict
 
 #-------------------------------------------------------------------------
 #
@@ -236,16 +237,16 @@ class ViewPersonMatch():
         dot_test = DotSvgGenerator(self.dbstate) #?? , self.view)
         dot_test.init_dot()
         # These are at the desired font sizes.
-        dot_test.add_node('test_bold', '<B>%s</B>' % text, shape='box')
-        dot_test.add_node('test_norm', text, shape='box')
+        dot_test.generate_node('test_bold', '<B>%s</B>' % text, shape='box')
+        dot_test.generate_node('test_norm', text, shape='box')
         # now add nodes at increasing font sizes
         for scale in range(35, 140, 2):
             f_size = dot_test.fontsize * scale / 100.0
-            dot_test.add_node(
+            dot_test.generate_node(
                 'test_bold' + str(scale),
                 '<FONT POINT-SIZE="%(bsize)3.1f"><B>%(text)s</B></FONT>' %
                 {'text': text, 'bsize': f_size}, shape='box')
-            dot_test.add_node(
+            dot_test.generate_node(
                 'test_norm' + str(scale),
                 text, shape='box', fontsize=("%3.1f" % f_size))
 
@@ -749,27 +750,32 @@ class DotSvgGenerator(object):
         self.norm_size = norm_size
         self.dbstate = dbstate
         self.database = dbstate.db
-        self.ftdb = fulltextDatabase(writer=False)
+        #self.ftdb = fulltextDatabase(writer=False) # Only used in get_match_color
+        self.maxlevel = 2  # 2 generations of Ancestors
+        self.minlevel = -2  # 2 generations of Decendants
+        self.personNodes = defaultdict(list) # dict of lists with level as key and a list (type, (person, color)) items
+        self.familyNodes = [] # list of (family, color)
+        self.links = []       # list of (fromId, toId)
+        self.dot = None       # will be StringIO()
 
-        self.dot = None         # will be StringIO()
-
+        #From GraphView?
         # This dictionary contains person handle as the index and the value is
         # the number of families in which the person is a parent. From this
         # dictionary is obtained a list of person handles sorted in decreasing
         # value order which is used to keep multiple spouses positioned
         # together.
-        self.person_handles_dict = {}
-        self.person_handles = []
+        #self.person_handles_dict = {}
+        #self.person_handles = []
 
         # list of persons on path to home person
-        self.current_list = list()
-        self.home_person = None
+        #self.current_list = list()
+        #self.home_person = None
 
         # Gtk style context for scrollwindow
         #self.context = self.view.graph_widget.sw_style_context
 
         # font if we use genealogical symbols
-        self.sym_font = None
+        #self.sym_font = None
 
     def __del__(self):
         """
@@ -791,7 +797,7 @@ class DotSvgGenerator(object):
         bg_color = '#ffffff'
         font_color = '#000000'
         """
-        ###############CONF
+        ###############CONF from GraphView
         # get background color from gtk theme and convert it to hex
         # else use white background
         bg_color = self.context.lookup_color('theme_bg_color')
@@ -879,6 +885,10 @@ class DotSvgGenerator(object):
             self.write(' node [style=filled fontsize=%3.1f fontcolor="%s"];\n'
                        % (self.norm_size, font_color))
         self.write('\n')
+        # clear out lists (see __init__)
+        self.personNodes = defaultdict(list)
+        self.familyNodes = []
+        self.links = []
 
     def resolve_font_name(self, font_name):
         """
@@ -894,8 +904,7 @@ class DotSvgGenerator(object):
             font = font_name
         return font
 
-    def add_node(self, node_id, label, shape="", color="",
-                 style="", fillcolor="", url="", fontsize=""):
+    def generate_node(self, node_id, label, shape="", color="", style="", fillcolor="", url="", fontsize=""):
         """
         Add a node to this graph.
         Nodes can be different shapes like boxes and circles.
@@ -932,7 +941,7 @@ class DotSvgGenerator(object):
             text += ' URL="%s"' % url
 
         text += " ]"
-        self.write(' _%s %s;\n' % (node_id, text))
+        self.write(' _%s %s;\n' % (node_id.replace('-', '_'), text))
 
     def get_person_data(self, person):
         if not person: return ('?', '?', '?', '?', '?')
@@ -965,7 +974,9 @@ class DotSvgGenerator(object):
             deathPlace = ""
         return (name, birthDate, birthPlace.replace('församling', ''), deathDate, deathPlace.replace('församling', ''))
 
+    """
     def get_match_color(self, handle1, handle2):
+        # for links between matched pairs of persons
         if not handle1 or not handle2: return "#ffffff"  # white
         if handle1 == handle2: return "#00ff00"  # green
         score = 0.0
@@ -982,8 +993,9 @@ class DotSvgGenerator(object):
         if green > 255: green = 255
         elif green < 0: green = 0
         return "#%02x%02x10" % (red, green)
-
-    def person_node(self, p):
+    """
+    
+    def person_node(self, p, color):
         (name, birthDate, birthPlace, deathDate, deathPlace) = self.get_person_data(p)
         rows = '<TR><TD><B>%s</B></TD></TR>' % name
         rows += '<TR><TD>ID: %s</TD></TR>' % p.gramps_id
@@ -992,43 +1004,76 @@ class DotSvgGenerator(object):
         rows += '<TR><TD>d. %s</TD></TR>' % deathDate
         rows += '<TR><TD>%s</TD></TR>' % deathPlace
         label = '<TABLE BORDER="0" CELLSPACING="2" CELLPADDING="0" CELLBORDER="0">%s</TABLE>' % rows
-        self.add_node(p.gramps_id, label, shape='box', fillcolor=self.color)
+        self.generate_node(p.gramps_id, label, shape='box', fillcolor=color)
 
-    def family_node(self, family):
-        #update to use add_node FIX
-        #options = 'margin="0.11,0.08" shape="ellipse" color="#cccccc" fillcolor="#eeeeee" fontcolor="#000000" style="filled"'
-        options = 'margin="0.11,0.08" shape="ellipse" color="#cccccc" fillcolor="%s" fontcolor="#000000" style="filled"' % self.color
-        label = '<TABLE BORDER="0" CELLSPACING="2" CELLPADDING="0" CELLBORDER="0"><TR><TD>%s</TD></TR></TABLE>' % family.gramps_id
-        txt = ' _%s [%s label=<%s> ];\n' % (family.gramps_id, options, label)
+    def family_node(self, family, color):
+        date = '-'
+        for event_ref in family.get_event_ref_list():
+            event = self.database.get_event_from_handle(event_ref.ref)
+            if event.get_type().is_marriage():
+                date = event.get_date_object()
+                break                
+        options = 'margin="0.11,0.08" shape="ellipse" color="#cccccc" fillcolor="%s" fontcolor="#000000" style="filled"' % color
+        label = '<TABLE BORDER="0" CELLSPACING="2" CELLPADDING="0" CELLBORDER="0"><TR><TD>ID:%s, m. %s</TD></TR></TABLE>' % (family.gramps_id, date)
+        self.generate_node(family.gramps_id, label, shape='ellipse', fillcolor=color)
+
+    def generate_link(self, from_node, to_node, style='solid'):
+        txt = '  _%s -> _%s  [ style=%s arrowhead=none arrowtail=none color="#2e3436" ];\n' % (from_node.replace('-', '_'), to_node.replace('-', '_'), style)
         self.write('%s\n' % txt)
 
-    def add_link(self, from_node, to_node, style='solid'):
-        txt = '  _%s -> _%s  [ style=%s arrowhead=none arrowtail=none color="#2e3436" ];\n' % (from_node, to_node, style)
-        self.write('%s\n' % txt)
+    def add_family(self, person, family, updown):
+        self.familyNodes.append((family, self.color))
+        if updown == 'up':
+            self.links.append((family.gramps_id, person.gramps_id))
+        else:
+            self.links.append((person.gramps_id, family.gramps_id))
 
-    def find_parents(self, handle):
-        """
-        Locate parents from the first family that the selected person is a
-        child of.
-        """
-        person = self.dbstate.db.get_person_from_handle(handle)
-        parents = []
-        fam_handle = None
-        try:
-            fam_handle = person.get_parent_family_handle_list()[0] #f1_id = p1.get_main_parents_family_handle()?
-            if fam_handle:
-                family = self.dbstate.db.get_family_from_handle(fam_handle)
-                if family:
-                    handle = family.get_father_handle()
-                    if handle:
-                        parents.append(handle)
-                    handle = family.get_mother_handle()
-                    if handle:
-                        parents.append(handle)
-        except IndexError:
-            parents = []
+    def add_parents(self, person, family_handle, level):
+        family = self.database.get_family_from_handle(family_handle)
+        self.add_family(person, family, 'up')
+        handle = family.get_father_handle()
+        if handle:
+            p = self.database.get_person_from_handle(handle)
+            self.personNodes[level].append((p, self.color))
+            self.links.append((p.gramps_id, family.gramps_id))
+            if self.maxlevel > level:
+                for f_handle in p.get_parent_family_handle_list(): #Fam where p is child
+                    self.add_parents(p, f_handle, level + 1)
+        handle = family.get_mother_handle()
+        if handle:
+            p = self.database.get_person_from_handle(handle)
+            self.personNodes[level].append((p, self.color))
+            self.links.append((p.gramps_id, family.gramps_id))
+            if self.maxlevel > level:
+                for f_handle in p.get_parent_family_handle_list(): #Fam where p is child
+                    self.add_parents(p, f_handle, level + 1)
 
-        return (fam_handle, parents)
+    def add_spouse(self, person, family, level):
+        self.add_family(person, family, 'down')
+        spouse_handle = family.get_father_handle()
+        if spouse_handle == person.handle:
+            spouse_handle = family.get_mother_handle()
+        if spouse_handle:
+            p = self.database.get_person_from_handle(spouse_handle)
+            self.links.append((person.gramps_id, p.gramps_id)) #Make invisible FIX
+            self.personNodes[level].append((p, self.color))
+            self.links.append((p.gramps_id, family.gramps_id))
+            #spouse parents
+            for family_handle in p.get_parent_family_handle_list(): #Fam where p (spouse) is child
+                #get_main_parents_family_handle??
+                self.add_parents(p, family_handle, level + 1)
+
+    def add_children(self, family, level):
+        # children of family
+        for child_ref in family.get_child_ref_list():
+            child = self.database.get_person_from_handle(child_ref.ref)
+            self.personNodes[level].append((child, self.color))
+            self.links.append((family.gramps_id, child.gramps_id))
+            if level > self.minlevel:
+                for family_handle in child.get_family_handle_list(): #Fam where child parent or spouse
+                    fam = self.database.get_family_from_handle(family_handle)
+                    self.add_family(child, fam, 'down')
+                    self.add_children(fam, level - 1)
     
     def build_graph(self, p1_handle, p2_handle):  # active_person):
         """
@@ -1036,80 +1081,52 @@ class DotSvgGenerator(object):
         """
         # reinit dot file stream (write starting graphviz dot code to file)
         self.init_dot()
-        self.color = '#bed6dc' #green for main match
-        done = []
+        level = 0
+        
         p1 = self.database.get_person_from_handle(p1_handle)
         p2 = self.database.get_person_from_handle(p2_handle)
-        self.write('subgraph TMP1{ style="invis";')
-        self.add_link(p1.gramps_id, p2.gramps_id, style='dashed')
-        self.write('{rank = same; _%s; _%s;}\n' % (p1.gramps_id, p2.gramps_id))
-        self.write('}\n')
+        
+        matchColor = '#bed6dc' #green for main match
         self.color =  '#a5cafb' #Blue for p1
         for p in (p1, p2):
-            self.person_node(p)
-            done.append(p.gramps_id)
-            #Parents of p
-            family_handle = p.get_main_parents_family_handle()
-            if family_handle:
-                fam = self.database.get_family_from_handle(family_handle)
-                self.add_link(fam.gramps_id, p.gramps_id)
-                (parent_fam_handle, parents) = self.find_parents(p.handle)
-                if parent_fam_handle:
-                    parent_fam = self.database.get_family_from_handle(parent_fam_handle)
-                    if parent_fam.gramps_id not in done:
-                        self.family_node(parent_fam)
-                        done.append(parent_fam.gramps_id)
-                    self.add_link(parent_fam.gramps_id, p.gramps_id)
-                for parent_handle in parents:
-                    parent = self.database.get_person_from_handle(parent_handle)
-                    if parent.gramps_id not in done:
-                        self.person_node(parent)
-                        done.append(parent.gramps_id)
-                    if parent:
-                        self.add_link(parent.gramps_id, parent_fam.gramps_id)
+            level = 0
+            self.personNodes[level].append((p, matchColor))
+            for family_handle in p.get_parent_family_handle_list(): #Fam where p is child
+                #get_main_parents_family_handle??
+                self.add_parents(p, family_handle, level + 1)
             # Family of p (spouse, children)
-            for family_handle in p.get_family_handle_list():
+            for family_handle in p.get_family_handle_list(): #Fam where p parent or spouse
                 fam = self.database.get_family_from_handle(family_handle)
-                if fam.gramps_id in done:
-                    continue
-                self.family_node(fam)
-                self.add_link(p.gramps_id, fam.gramps_id)
-                done.append(fam.gramps_id)
-                #Spouse of p
-                spouse_handle = fam.get_father_handle()
-                if spouse_handle == p.handle:
-                    spouse_handle = fam.get_mother_handle()
-                if spouse_handle:
-                    spouse = self.database.get_person_from_handle(spouse_handle)
-                    if spouse.gramps_id not in done:
-                        self.person_node(spouse)
-                        done.append(spouse.gramps_id)
-                    if spouse:
-                        self.add_link(spouse.gramps_id, fam.gramps_id)
-                        #spouse parents
-                        (parent_fam_handle, parents) = self.find_parents(spouse_handle)
-                        if parent_fam_handle:
-                            parent_fam = self.database.get_family_from_handle(parent_fam_handle)
-                            if parent_fam.gramps_id not in done:
-                                self.family_node(parent_fam)
-                                done.append(parent_fam.gramps_id)
-                            self.add_link(parent_fam.gramps_id, spouse.gramps_id)
-                        for parent_handle in parents:
-                            parent = self.database.get_person_from_handle(parent_handle)
-                            if parent.gramps_id not in done:
-                                self.person_node(parent)
-                                done.append(parent.gramps_id)
-                            if parent:
-                                self.add_link(parent.gramps_id, parent_fam.gramps_id)
-                # children of p
-                for child_ref in fam.get_child_ref_list():
-                    child = self.database.get_person_from_handle(child_ref.ref)
-                    if child.gramps_id not in done:
-                        self.person_node(child)
-                        done.append(child.gramps_id)
-                    self.add_link(fam.gramps_id, child.gramps_id)
+                self.add_family(p, fam, 'down')
+                self.add_spouse(p, fam, level) #adds spouse parents
+                self.add_children(fam, level - 1)
+
             self.color = '#cc997f' #Brown for p2
-           
+
+        #family nodes
+        done = []
+        for (node, color) in self.familyNodes:
+            if node.gramps_id in done: continue
+            self.family_node(node, color)
+            done.append(node.gramps_id)
+        #person nodes
+        done = []
+        for (level, nodes) in self.personNodes.items():
+            rank = []
+            for (p, col) in nodes:
+                if p.gramps_id in done: continue
+                self.person_node(p, col)
+                done.append(p.gramps_id)
+                rank.append(p.gramps_id.replace('-', '_'))
+            self.write("{rank = same; _%s;}\n" % '; _'.join(rank))
+        #links
+        done = []
+        self.generate_link(p1.gramps_id, p2.gramps_id, style='dashed')
+        done.append((p1.gramps_id, p2.gramps_id))
+        for (nodeId1, nodeId2) in self.links:
+            if (nodeId1, nodeId2) in done: continue
+            self.generate_link(nodeId1, nodeId2)
+            done.append((nodeId1, nodeId2))
         # close the graphviz dot code with a brace
         self.write('}\n')
 
