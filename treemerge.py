@@ -120,6 +120,7 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         #init(self.dbstate.db)  # for libaccess
         self.map = {}
         self.list = []
+        self.id_list = []
         self.index = 0
         self.merger = None
         self.mergee = None
@@ -267,6 +268,7 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
                 continue
             #pn1 = "%s %s" % (p1.gramps_id, name_displayer.display(p1))
             #pn2 = "%s %s" % (p2.gramps_id, name_displayer.display(p2))
+            self.id_list.append((c, p1.gramps_id, p2.gramps_id))
             pn1 = name_displayer.display(p1)
             pn2 = name_displayer.display(p2)
             self.mlist.add([c1, pn1, pn2, c2],(p1key, p2key))
@@ -278,8 +280,7 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
             return
         (self.p1, self.p2) = self.mlist.get_object(iter)
         self.notImplem("Merge 2 matched persons")
-        MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2,
-                    self.on_update, True)
+        MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2, self.on_update, True)
 
     def do_automerge(self, obj):
         cutoff = self.automergecutoff.get_model()[self.automergecutoff.get_active()][1]
@@ -316,7 +317,7 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
             return
         (self.p1, self.p2) = self.mlist.get_object(iter)
         self.uistate.set_active(self.p1, 'Person')
-        GraphComparePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2, self.on_update) #FIX
+        GraphComparePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2, self.on_update, self.id_list) #FIX
 
     def on_update(self, handle_list=None):
         if self.db.has_person_handle(self.p1):
@@ -345,7 +346,7 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
 
 class GraphComparePerson(ManagedWindow):
 
-    def __init__(self, dbstate, uistate, track, p1, p2, callback):
+    def __init__(self, dbstate, uistate, track, p1, p2, callback, matches):
         self.uistate = uistate
         self.track = track
         ManagedWindow.__init__(self, self.uistate, self.track, self.__class__)
@@ -367,7 +368,7 @@ class GraphComparePerson(ManagedWindow):
         self.canvas.props.resolution_y = 72
         scrolled_win.add(self.canvas)
 
-        self.graphView = ViewPersonMatch(self.dbstate, self.uistate, self.canvas, track, self.p1, self.p2, callback)
+        self.graphView = ViewPersonMatch(self.dbstate, self.uistate, self.canvas, track, self.p1, self.p2, callback, matches)
 
         self.closebtn = top.get_object("grclose")
         self.closebtn.connect('clicked', self.close)

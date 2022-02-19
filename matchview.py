@@ -29,6 +29,7 @@ from subprocess import Popen, PIPE
 from xml.parsers.expat import ParserCreate
 from html import escape
 from collections import defaultdict
+from itertools import combinations
 
 #-------------------------------------------------------------------------
 #
@@ -52,7 +53,7 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from ftDatabase import fulltextDatabase
 
 class ViewPersonMatch():
-    def __init__(self, dbstate, uistate, canvas, track, p1_handle, p2_handle, callback):
+    def __init__(self, dbstate, uistate, canvas, track, p1_handle, p2_handle, callback, matches):
         self.dbstate = dbstate
         self.uistate = uistate
         self.canvas = canvas
@@ -132,7 +133,7 @@ class ViewPersonMatch():
         # generate DOT and SVG data
         dot = DotSvgGenerator(self.dbstate, bold_size=self.bold_size, norm_size=self.norm_size)
 
-        graph_data = dot.build_graph(self.p1_handle, self.p2_handle)
+        graph_data = dot.build_graph(self.p1_handle, self.p2_handle, matches)
         del dot
 
         if not graph_data:
@@ -582,7 +583,7 @@ class GraphvizSvgParser(object):
         Parse <path> tags.
         These define the links between nodes.
         Solid lines represent birth relationships and dashed lines are used
-        when a child has a non-birth relationship to a parent.
+        when a child has a non-birth relationship to a parent. (!! not here from GraphView)
         """
         p_data = attrs.get('d')
         line_width = attrs.get('stroke-width')
@@ -753,8 +754,7 @@ class DotSvgGenerator(object):
         #self.ftdb = fulltextDatabase(writer=False) # Only used in get_match_color
         self.maxlevel = 2  # 2 generations of Ancestors
         self.minlevel = -2  # 2 generations of Decendants
-        self.personNodes = defaultdict(list) # dict of lists with level as key and a list (type, (person, color)) items
-        self.familyNodes = [] # list of (family, color)
+        self.nodes = []
         self.links = []       # list of (fromId, toId)
         self.dot = None       # will be StringIO()
 
@@ -841,7 +841,6 @@ class DotSvgGenerator(object):
         fontfamily = False
         font_color = "#2e3436"  #?
         self.spline = 'true'
-        pagedir = "BL"
         rankdir = "TB"
         ratio = "compress"
         ranksep = 5  #self.view._config.get('interface.graphview-ranksep')
@@ -855,19 +854,18 @@ class DotSvgGenerator(object):
         xmargin = 0.00
         ymargin = 0.00
 
-        self.write('digraph GRAMPS_graph\n')
+        self.write('digraph Compare_matches\n')
         self.write('{\n')
         self.write(' bgcolor="%s";\n' % bg_color)
         self.write(' center="false"; \n')
         self.write(' charset="utf8";\n')
-        self.write(' concentrate="false";\n')
+        self.write(' concentrate="true";\n')
         self.write(' dpi="%d";\n' % dpi)
         self.write(' graph [fontsize=%3.1f];\n' % self.fontsize)
         self.write(' margin="%3.2f,%3.2f"; \n' % (xmargin, ymargin))
         self.write(' mclimit="99";\n')
         self.write(' nodesep="%.2f";\n' % nodesep)
         self.write(' outputorder="edgesfirst";\n')
-        self.write(' pagedir="%s";\n' % pagedir)
         self.write(' rankdir="%s";\n' % rankdir)
         self.write(' ranksep="%.2f";\n' % ranksep)
         self.write(' ratio="%s";\n' % ratio)
@@ -886,8 +884,7 @@ class DotSvgGenerator(object):
                        % (self.norm_size, font_color))
         self.write('\n')
         # clear out lists (see __init__)
-        self.personNodes = defaultdict(list)
-        self.familyNodes = []
+        self.nodes = []
         self.links = []
 
     def resolve_font_name(self, font_name):
@@ -1014,15 +1011,17 @@ class DotSvgGenerator(object):
                 date = event.get_date_object()
                 break                
         options = 'margin="0.11,0.08" shape="ellipse" color="#cccccc" fillcolor="%s" fontcolor="#000000" style="filled"' % color
-        label = '<TABLE BORDER="0" CELLSPACING="2" CELLPADDING="0" CELLBORDER="0"><TR><TD>ID:%s, m. %s</TD></TR></TABLE>' % (family.gramps_id, date)
+        label = "ID:%s, m. %s" % (family.gramps_id, date)
         self.generate_node(family.gramps_id, label, shape='ellipse', fillcolor=color)
 
-    def generate_link(self, from_node, to_node, style='solid'):
-        txt = '  _%s -> _%s  [ style=%s arrowhead=none arrowtail=none color="#2e3436" ];\n' % (from_node.replace('-', '_'), to_node.replace('-', '_'), style)
-        self.write('%s\n' % txt)
+    def generate_link(self, from_node, to_node, constraint=False, style='solid', color="#2e3436", penwidth=1):
+        opt = 'style=%s arrowhead=none arrowtail=none color="%s" penwidth="%d"' % (style, color, penwidth)
+        if constraint:
+            opt += " constraint=false"
+        self.write('  _%s -> _%s [%s];\n' % (from_node.replace('-', '_'), to_node.replace('-', '_'), opt))
 
     def add_family(self, person, family, updown):
-        self.familyNodes.append((family, self.color))
+        self.nodes.append(('family', None, family, self.color))
         if updown == 'up':
             self.links.append((family.gramps_id, person.gramps_id))
         else:
@@ -1034,7 +1033,7 @@ class DotSvgGenerator(object):
         handle = family.get_father_handle()
         if handle:
             p = self.database.get_person_from_handle(handle)
-            self.personNodes[level].append((p, self.color))
+            self.nodes.append(('person', level, p, self.color))
             self.links.append((p.gramps_id, family.gramps_id))
             if self.maxlevel > level:
                 for f_handle in p.get_parent_family_handle_list(): #Fam where p is child
@@ -1042,7 +1041,7 @@ class DotSvgGenerator(object):
         handle = family.get_mother_handle()
         if handle:
             p = self.database.get_person_from_handle(handle)
-            self.personNodes[level].append((p, self.color))
+            self.nodes.append(('person', level, p, self.color))
             self.links.append((p.gramps_id, family.gramps_id))
             if self.maxlevel > level:
                 for f_handle in p.get_parent_family_handle_list(): #Fam where p is child
@@ -1056,7 +1055,7 @@ class DotSvgGenerator(object):
         if spouse_handle:
             p = self.database.get_person_from_handle(spouse_handle)
             self.links.append((person.gramps_id, p.gramps_id)) #Make invisible FIX
-            self.personNodes[level].append((p, self.color))
+            self.nodes.append(('person', level, p, self.color))
             self.links.append((p.gramps_id, family.gramps_id))
             #spouse parents
             for family_handle in p.get_parent_family_handle_list(): #Fam where p (spouse) is child
@@ -1067,7 +1066,7 @@ class DotSvgGenerator(object):
         # children of family
         for child_ref in family.get_child_ref_list():
             child = self.database.get_person_from_handle(child_ref.ref)
-            self.personNodes[level].append((child, self.color))
+            self.nodes.append(('person', level, child, self.color))
             self.links.append((family.gramps_id, child.gramps_id))
             if level > self.minlevel:
                 for family_handle in child.get_family_handle_list(): #Fam where child parent or spouse
@@ -1075,7 +1074,7 @@ class DotSvgGenerator(object):
                     self.add_family(child, fam, 'down')
                     self.add_children(fam, level - 1)
     
-    def build_graph(self, p1_handle, p2_handle):  # active_person):
+    def build_graph(self, p1_handle, p2_handle, matches):
         """
         Builds a GraphViz tree based on comparing p_handle1, p_handle2
         """
@@ -1090,7 +1089,7 @@ class DotSvgGenerator(object):
         self.color =  '#a5cafb' #Blue for p1
         for p in (p1, p2):
             level = 0
-            self.personNodes[level].append((p, matchColor))
+            self.nodes.append(('person', level, p, matchColor))
             for family_handle in p.get_parent_family_handle_list(): #Fam where p is child
                 #get_main_parents_family_handle??
                 self.add_parents(p, family_handle, level + 1)
@@ -1102,38 +1101,51 @@ class DotSvgGenerator(object):
                 self.add_children(fam, level - 1)
 
             self.color = '#cc997f' #Brown for p2
-
-        #family nodes
         done = []
-        for (node, color) in self.familyNodes:
+        rank = defaultdict(list)
+        allNodes = set()
+        for (typ, level, node, color) in self.nodes:
             if node.gramps_id in done: continue
-            self.family_node(node, color)
             done.append(node.gramps_id)
-        #person nodes
-        done = []
-        for (level, nodes) in self.personNodes.items():
-            rank = []
-            for (p, col) in nodes:
-                if p.gramps_id in done: continue
-                self.person_node(p, col)
-                done.append(p.gramps_id)
-                rank.append(p.gramps_id.replace('-', '_'))
-            self.write("{rank = same; _%s;}\n" % '; _'.join(rank))
+            if typ == 'family':
+                self.family_node(node, color)
+            elif typ == 'person':
+                self.person_node(node, color)
+                allNodes.add(node.gramps_id)
+                rank[level].append(node.gramps_id.replace('-', '_'))
+            #else: ERROR
+        for (l, nodeIds) in rank.items():
+            self.write("{rank = same; _%s;}\n" % '; _'.join(nodeIds))
         #links
         done = []
-        self.generate_link(p1.gramps_id, p2.gramps_id, style='dashed')
-        done.append((p1.gramps_id, p2.gramps_id))
         for (nodeId1, nodeId2) in self.links:
             if (nodeId1, nodeId2) in done: continue
             self.generate_link(nodeId1, nodeId2)
             done.append((nodeId1, nodeId2))
+        #links between matches
+        matchpair2rating = {}
+        for (c, p1id, p2id) in matches:
+            matchpair2rating[(p1id, p2id)] = c
+            matchpair2rating[(p2id, p1id)] = c
+        for pair in combinations(allNodes, 2):
+            if pair in matchpair2rating:
+                # color dep on rating 1.0 = grön, 0.75=yellow, 0.5=red
+                rating = matchpair2rating[pair]
+                green = int(255 * (rating - 0.5) / 0.5)
+                red = 255 - green
+                color = "#%s" % bytearray([red, green, 0]).hex()
+                if p1.gramps_id in pair and p2.gramps_id in pair:
+                    constraint = False
+                else:
+                    constraint = True
+                self.generate_link(pair[0], pair[1], constraint=constraint, style='dashed', color=color, penwidth=5)
+
         # close the graphviz dot code with a brace
         self.write('}\n')
 
         # get DOT and generate SVG data by Graphviz
         dot_data = self.dot.getvalue().encode('utf8')
         svg_data = self.make_svg(dot_data)
-        #print(dot_data)
         return (dot_data, svg_data)
 
     def make_svg(self, dot_data):

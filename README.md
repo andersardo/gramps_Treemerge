@@ -72,7 +72,8 @@ Select a matched pair
 ![Main window](/TreemergeMain.png)
 
 Press **Compare** to see the two family-trees (colored blue and brown) for the matched persons in
-the selected pair (colored green).
+the selected pair (colored green). Dashed lines connect matched persons, color indicate rating
+(from green=1.0 via yellow to red=0.5).
 
 ![Graphical compare of match](/TreemergeCompare.png)
 
