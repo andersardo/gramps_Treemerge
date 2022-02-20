@@ -196,6 +196,7 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         closebtn = top.get_object("closebtn")
         closebtn.connect('clicked', self.close)
 
+        self.compareview = None
         self.dbstate.connect('database-changed', self.redraw) #??
         self.db.connect("person-delete", self.person_delete)  #??
 
@@ -316,8 +317,9 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
             self.infoMsg("Please select a match above")
             return
         (self.p1, self.p2) = self.mlist.get_object(iter)
+        if self.compareview: self.compareview.close('')
         self.uistate.set_active(self.p1, 'Person')
-        GraphComparePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2, self.on_update, self.id_list) #FIX
+        self.compareview = GraphComparePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2, self.on_update, self.id_list) #FIX
 
     def on_update(self, handle_list=None):
         if self.db.has_person_handle(self.p1):
@@ -331,6 +333,7 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         self.close()
     
     def close(self, obj, t=None):
+        if self.compareview: self.compareview.close('')
         ManagedWindow.close(self, *obj)
 
     def person_delete(self, handle_list):
