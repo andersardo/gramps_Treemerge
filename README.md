@@ -75,6 +75,8 @@ Press **Compare** to see the two family-trees (colored blue and brown) for the m
 the selected pair (colored green). Dashed lines connect matched persons, color indicate rating
 (from green=1.0 via yellow to red=0.5).
 
+The **NOT Match** button will simply remove the selected match from the list.
+
 ![Graphical compare of match](/TreemergeCompare.png)
 
 Clicking on a person in the graph will set the active person which

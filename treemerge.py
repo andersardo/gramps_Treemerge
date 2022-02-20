@@ -188,6 +188,8 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         matchbtn.connect('clicked', self.do_match)
         compbtn = top.get_object("cmpbtn")
         compbtn.connect('clicked', self.do_comp)
+        notmatchbtn = top.get_object("notmatch")
+        notmatchbtn.connect('clicked', self.do_notmatch)
         mergebtn = top.get_object("mergebtn")
         mergebtn.connect('clicked', self.do_merge)
         automergebtn = top.get_object("automerge")
@@ -215,6 +217,15 @@ class TreeMerge(tool.Tool, ManagedWindow):  #CHECK use BatchTool when using auto
         """Display the relevant portion of Gramps manual"""
         self.notImplem("Help")
         #display_help(WIKI_HELP_PAGE , WIKI_HELP_SEC)
+
+    def do_notmatch(self, obj):
+        store, iter = self.mlist.selection.get_selected()
+        if not iter:
+            self.infoMsg("Please select a match above")
+            return
+        (self.p1, self.p2) = self.mlist.get_object(iter)
+        self.dellist.add(self.p1)
+        self.redraw()
 
     def do_match(self, obj):
         threshold = self.menu.get_model()[self.menu.get_active()][1]
