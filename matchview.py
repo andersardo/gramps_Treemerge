@@ -31,26 +31,26 @@ from html import escape
 from collections import defaultdict
 from itertools import combinations
 
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 #
 # GNOME libraries
 #
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 from gi.repository import Gtk, Pango
 from gi.repository import GooCanvas
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 #
 # Gramps modules
 #
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 from gramps.gen.constfunc import win
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 #
 # Fulltextdatabase Whoosh
 #
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-from ftDatabase import fulltextDatabase
+
 
 class ViewPersonMatch():
     def __init__(self, dbstate, uistate, canvas, track, p1_handle, p2_handle, callback, matches):
@@ -139,13 +139,13 @@ class ViewPersonMatch():
         if not graph_data:
             # something go wrong when build all-connected tree
             # so turn off this feature
-            #self.view._config.set('interface.graphview-show-all-connected', False)
+            # self.view._config.set('interface.graphview-show-all-connected', False)
             return
 
         self.dot_data = graph_data[0]
         self.svg_data = graph_data[1]
 
-        parser = GraphvizSvgParser(self) # , self.view) ??
+        parser = GraphvizSvgParser(self)  # , self.view) ??
         parser.parse(self.svg_data)
 
 #        self.animation.update_items(parser.items_list)
@@ -155,7 +155,7 @@ class ViewPersonMatch():
         self.set_zoom(self.scale)
 
     def close(self):
-        pass # ??
+        pass  # ??
 
     def zoom_in(self, _button=None):
         """
@@ -196,8 +196,8 @@ class ViewPersonMatch():
         width_canvas = bounds.x2 - bounds.x1
 
         # get scroll window size
-        width = self.hadjustment.get_page_size()
-        height = self.vadjustment.get_page_size()
+        width = self.hadjustment.get_page_size()  # FIX
+        height = self.vadjustment.get_page_size()  # FIX
 
         # prevent division by zero
         if height_canvas == 0:
@@ -235,7 +235,7 @@ class ViewPersonMatch():
             return self.bold_size, self.norm_size
 
         text = "The quick Brown Fox jumped over the Lazy Dogs 1948-01-01."
-        dot_test = DotSvgGenerator(self.dbstate) #?? , self.view)
+        dot_test = DotSvgGenerator(self.dbstate)  # ?? , self.view)
         dot_test.init_dot()
         # These are at the desired font sizes.
         dot_test.generate_node('test_bold', '<B>%s</B>' % text, shape='box')
@@ -300,47 +300,48 @@ class ViewPersonMatch():
         # return the adjusted font size to tell dot to use.
         return bold_size, norm_size
 
-
     def get_widget(self):
         """
         Return the graph display widget that includes the drawing canvas.
         """
         return self.vbox
 
-    def button_press(self, item, _target, event): #FIX
+    def button_press(self, item, _target, event):  # FIX
         return False
 
-    def button_release(self, item, target, event): #FIX
+    def button_release(self, item, target, event):  # FIX
         return False
 
-    def motion_notify_event(self, _item, _target, event): #FIX
+    def motion_notify_event(self, _item, _target, event):  # FIX
         return False
 
-    def select_node(self, item, target, event): #FIX
+    def select_node(self, item, target, event):  # FIX
         """
         Perform actions when a node is clicked.
         If middle mouse was clicked then try to set scroll mode.
         """
-        grampsId = item.title #gramps id
-        node_class = item.description  # 'node', 'familynode'
-        button = event.get_button()[1]  # mouse button 1,2,3
-        #Change active for view in main window
+        grampsId = item.title  # gramps id
+        # node_class = item.description  # 'node', 'familynode'
+        # button = event.get_button()[1]  # mouse button 1,2,3
+        # Change active for view in main window
         clickedPerson = self.dbstate.db.get_person_from_gramps_id(grampsId)
         self.uistate.set_active(clickedPerson.handle, 'Person')
 
         return False
 
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 #
 # GraphvizSvgParser (from GraphView)
 #
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+
+
 class GraphvizSvgParser(object):
     """
     Parses SVG produces by Graphviz and adds the elements to a GooCanvas.
     """
 
-    #def __init__(self, widget, view):
+    # def __init__(self, widget, view):
     def __init__(self, widget):
         """
         Initialise the GraphvizSvgParser class.
@@ -349,11 +350,11 @@ class GraphvizSvgParser(object):
         self.widget = widget
         self.canvas = widget.canvas
         #self.view = view
-        #self.highlight_home_person = self.view._config.get(
+        # self.highlight_home_person = self.view._config.get(
         #    'interface.graphview-highlight-home-person')
         #scheme = config.get('colors.scheme')
         #self.home_person_color = config.get('colors.home-person')[scheme]
-        self.font_size = 14 #? #self.view._config.get('interface.graphview-font')[1]
+        self.font_size = 14  # ? #self.view._config.get('interface.graphview-font')[1]
 
         self.tlist = []
         self.text_attrs = None
@@ -499,18 +500,18 @@ class GraphvizSvgParser(object):
             stroke_color = attrs.get('stroke')
             fill_color = attrs.get('fill')
 
-        #if self.handle == self.widget.active_person_handle:
+        # if self.handle == self.widget.active_person_handle:
         if (self.handle == self.widget.p1_handle) or (self.handle == self.widget.p2_handle):
             line_width = 3  # thick box
         else:
             line_width = 1  # thin box
 
-        tooltip = str(self.handle) #self.view.tags_tooltips.get(self.handle)
+        tooltip = str(self.handle)  # self.view.tags_tooltips.get(self.handle)
 
         # highlight the home person
         # stroke_color is not '#...' when tags are drawing, so we check this
         # maybe this is not good solution to check for tags but it works
-        #if self.highlight_home_person and stroke_color[:1] == '#':
+        # if self.highlight_home_person and stroke_color[:1] == '#':
         #    home_person = self.widget.dbstate.db.get_default_person()
         #    if home_person and home_person.handle == self.handle:
         #        fill_color = self.home_person_color
@@ -554,7 +555,7 @@ class GraphvizSvgParser(object):
             stroke_color = attrs.get('stroke')
             fill_color = attrs.get('fill')
 
-        tooltip = str(self.handle)  #self.view.tags_tooltips.get(self.handle)
+        tooltip = str(self.handle)  # self.view.tags_tooltips.get(self.handle)
 
         item = GooCanvas.CanvasEllipse(parent=self.current_parent(),
                                        center_x=center_x,
@@ -671,9 +672,9 @@ class GraphvizSvgParser(object):
         """
         pos_x = float(attrs.get('x'))
         pos_y = float(attrs.get('y'))
-        width = float(attrs.get('width').rstrip(string.ascii_letters))
-        height = float(attrs.get('height').rstrip(string.ascii_letters))
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file(attrs.get('xlink:href'))
+        width = float(attrs.get('width').rstrip(string.ascii_letters))  # FIX
+        height = float(attrs.get('height').rstrip(string.ascii_letters))  # FIX
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(attrs.get('xlink:href'))  # FIX
 
         item = GooCanvas.CanvasImage(parent=self.current_parent(),
                                      x=pos_x,
@@ -733,16 +734,18 @@ class GraphvizSvgParser(object):
         style = style.rstrip(';')
         return dict([i.split(':') for i in style.split(';')])
 
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 #
 # DotSvgGenerator (based on GraphView)
 #
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
+
 
 class DotSvgGenerator(object):
     """
     Generator of graphing instructions in dot format and svg data by Graphviz.
     """
+
     def __init__(self, dbstate, bold_size=0, norm_size=0):
         """
         Initialise the DotSvgGenerator class.
@@ -751,14 +754,14 @@ class DotSvgGenerator(object):
         self.norm_size = norm_size
         self.dbstate = dbstate
         self.database = dbstate.db
-        #self.ftdb = fulltextDatabase(writer=False) # Only used in get_match_color
+        # self.ftdb = fulltextDatabase(writer=False) # Only used in get_match_color
         self.maxlevel = 2  # 2 generations of Ancestors
         self.minlevel = -2  # 2 generations of Decendants
         self.nodes = []
         self.links = []       # list of (fromId, toId)
         self.dot = None       # will be StringIO()
 
-        #From GraphView?
+        # From GraphView?
         # This dictionary contains person handle as the index and the value is
         # the number of families in which the person is a parent. From this
         # dictionary is obtained a list of person handles sorted in decreasing
@@ -793,7 +796,7 @@ class DotSvgGenerator(object):
             self.dot.close()
         self.dot = StringIO()
 
-        #### TODO FIX CONF
+        # TODO FIX CONF
         bg_color = '#ffffff'
         font_color = '#000000'
         """
@@ -833,19 +836,19 @@ class DotSvgGenerator(object):
         """
 
         if not self.bold_size:
-            self.bold_size = self.norm_size = 14 #font[1]
+            self.bold_size = self.norm_size = 14  # font[1]
         self.arrowheadstyle = 'none'
         self.arrowtailstyle = 'none'
         dpi = 72
-        self.fontsize = 14 #?
+        self.fontsize = 14  # ?
         fontfamily = False
-        font_color = "#2e3436"  #?
+        font_color = "#2e3436"  # ?
         self.spline = 'true'
         rankdir = "TB"
         ratio = "compress"
-        ranksep = 5  #self.view._config.get('interface.graphview-ranksep')
+        ranksep = 5  # self.view._config.get('interface.graphview-ranksep')
         ranksep = ranksep * 0.1
-        nodesep = 3  #self.view._config.get('interface.graphview-nodesep')
+        nodesep = 3  # self.view._config.get('interface.graphview-nodesep')
         nodesep = nodesep * 0.1
         # as we are not using paper,
         # choose a large 'page' size with no margin
@@ -941,7 +944,8 @@ class DotSvgGenerator(object):
         self.write(' _%s %s;\n' % (node_id.replace('-', '_'), text))
 
     def get_person_data(self, person):
-        if not person: return ('?', '?', '?', '?', '?')
+        if not person:
+            return ('?', '?', '?', '?', '?')
         name = person.get_primary_name().get_name()
         birth_ref = person.get_birth_ref()
         if birth_ref:
@@ -991,7 +995,7 @@ class DotSvgGenerator(object):
         elif green < 0: green = 0
         return "#%02x%02x10" % (red, green)
     """
-    
+
     def person_node(self, p, color):
         (name, birthDate, birthPlace, deathDate, deathPlace) = self.get_person_data(p)
         rows = '<TR><TD><B>%s</B></TD></TR>' % name
@@ -1009,16 +1013,17 @@ class DotSvgGenerator(object):
             event = self.database.get_event_from_handle(event_ref.ref)
             if event.get_type().is_marriage():
                 date = event.get_date_object()
-                break                
-        options = 'margin="0.11,0.08" shape="ellipse" color="#cccccc" fillcolor="%s" fontcolor="#000000" style="filled"' % color
+                break
         label = "ID:%s, m. %s" % (family.gramps_id, date)
         self.generate_node(family.gramps_id, label, shape='ellipse', fillcolor=color)
 
     def generate_link(self, from_node, to_node, constraint=False, style='solid', color="#2e3436", penwidth=1):
-        opt = 'style=%s arrowhead=none arrowtail=none color="%s" penwidth="%d"' % (style, color, penwidth)
+        opt = 'style=%s arrowhead=none arrowtail=none color="%s" penwidth="%d"' % (
+            style, color, penwidth)
         if constraint:
             opt += " constraint=false"
-        self.write('  _%s -> _%s [%s];\n' % (from_node.replace('-', '_'), to_node.replace('-', '_'), opt))
+        self.write('  _%s -> _%s [%s];\n' %
+                   (from_node.replace('-', '_'), to_node.replace('-', '_'), opt))
 
     def add_family(self, person, family, updown):
         self.nodes.append(('family', None, family, self.color))
@@ -1036,7 +1041,7 @@ class DotSvgGenerator(object):
             self.nodes.append(('person', level, p, self.color))
             self.links.append((p.gramps_id, family.gramps_id))
             if self.maxlevel > level:
-                for f_handle in p.get_parent_family_handle_list(): #Fam where p is child
+                for f_handle in p.get_parent_family_handle_list():  # Fam where p is child
                     self.add_parents(p, f_handle, level + 1)
         handle = family.get_mother_handle()
         if handle:
@@ -1044,7 +1049,7 @@ class DotSvgGenerator(object):
             self.nodes.append(('person', level, p, self.color))
             self.links.append((p.gramps_id, family.gramps_id))
             if self.maxlevel > level:
-                for f_handle in p.get_parent_family_handle_list(): #Fam where p is child
+                for f_handle in p.get_parent_family_handle_list():  # Fam where p is child
                     self.add_parents(p, f_handle, level + 1)
 
     def add_spouse(self, person, family, level):
@@ -1054,12 +1059,12 @@ class DotSvgGenerator(object):
             spouse_handle = family.get_mother_handle()
         if spouse_handle:
             p = self.database.get_person_from_handle(spouse_handle)
-            self.links.append((person.gramps_id, p.gramps_id)) #Make invisible FIX
+            self.links.append((person.gramps_id, p.gramps_id))  # Make invisible FIX
             self.nodes.append(('person', level, p, self.color))
             self.links.append((p.gramps_id, family.gramps_id))
-            #spouse parents
-            for family_handle in p.get_parent_family_handle_list(): #Fam where p (spouse) is child
-                #get_main_parents_family_handle??
+            # spouse parents
+            for family_handle in p.get_parent_family_handle_list():  # Fam where p (spouse) is child
+                # get_main_parents_family_handle??
                 self.add_parents(p, family_handle, level + 1)
 
     def add_children(self, family, level):
@@ -1069,11 +1074,11 @@ class DotSvgGenerator(object):
             self.nodes.append(('person', level, child, self.color))
             self.links.append((family.gramps_id, child.gramps_id))
             if level > self.minlevel:
-                for family_handle in child.get_family_handle_list(): #Fam where child parent or spouse
+                for family_handle in child.get_family_handle_list():  # Fam where child parent or spouse
                     fam = self.database.get_family_from_handle(family_handle)
                     self.add_family(child, fam, 'down')
                     self.add_children(fam, level - 1)
-    
+
     def build_graph(self, p1_handle, p2_handle, matches):
         """
         Builds a GraphViz tree based on comparing p_handle1, p_handle2
@@ -1081,31 +1086,32 @@ class DotSvgGenerator(object):
         # reinit dot file stream (write starting graphviz dot code to file)
         self.init_dot()
         level = 0
-        
+
         p1 = self.database.get_person_from_handle(p1_handle)
         p2 = self.database.get_person_from_handle(p2_handle)
-        
-        matchColor = '#bed6dc' #green for main match
-        self.color =  '#a5cafb' #Blue for p1
+
+        matchColor = '#bed6dc'  # green for main match
+        self.color = '#a5cafb'  # Blue for p1
         for p in (p1, p2):
             level = 0
             self.nodes.append(('person', level, p, matchColor))
-            for family_handle in p.get_parent_family_handle_list(): #Fam where p is child
-                #get_main_parents_family_handle??
+            for family_handle in p.get_parent_family_handle_list():  # Fam where p is child
+                # get_main_parents_family_handle??
                 self.add_parents(p, family_handle, level + 1)
             # Family of p (spouse, children)
-            for family_handle in p.get_family_handle_list(): #Fam where p parent or spouse
+            for family_handle in p.get_family_handle_list():  # Fam where p parent or spouse
                 fam = self.database.get_family_from_handle(family_handle)
                 self.add_family(p, fam, 'down')
-                self.add_spouse(p, fam, level) #adds spouse parents
+                self.add_spouse(p, fam, level)  # adds spouse parents
                 self.add_children(fam, level - 1)
 
-            self.color = '#cc997f' #Brown for p2
+            self.color = '#cc997f'  # Brown for p2
         done = []
         rank = defaultdict(list)
         allNodes = set()
         for (typ, level, node, color) in self.nodes:
-            if node.gramps_id in done: continue
+            if node.gramps_id in done:
+                continue
             done.append(node.gramps_id)
             if typ == 'family':
                 self.family_node(node, color)
@@ -1113,16 +1119,17 @@ class DotSvgGenerator(object):
                 self.person_node(node, color)
                 allNodes.add(node.gramps_id)
                 rank[level].append(node.gramps_id.replace('-', '_'))
-            #else: ERROR
+            # else: ERROR
         for (l, nodeIds) in rank.items():
             self.write("{rank = same; _%s;}\n" % '; _'.join(nodeIds))
-        #links
+        # links
         done = []
         for (nodeId1, nodeId2) in self.links:
-            if (nodeId1, nodeId2) in done: continue
+            if (nodeId1, nodeId2) in done:
+                continue
             self.generate_link(nodeId1, nodeId2)
             done.append((nodeId1, nodeId2))
-        #links between matches
+        # links between matches
         matchpair2rating = {}
         for (c, p1id, p2id) in matches:
             matchpair2rating[(p1id, p2id)] = c
@@ -1138,7 +1145,8 @@ class DotSvgGenerator(object):
                     constraint = False
                 else:
                     constraint = True
-                self.generate_link(pair[0], pair[1], constraint=constraint, style='dashed', color=color, penwidth=5)
+                self.generate_link(pair[0], pair[1], constraint=constraint,
+                                   style='dashed', color=color, penwidth=5)
 
         # close the graphviz dot code with a brace
         self.write('}\n')

@@ -23,37 +23,39 @@
 
 import sys
 import os
-from joblib import load #??pickle??
+from joblib import load  # ??pickle??
+from gramps.gen.const import GRAMPS_LOCALE as glocale
+from gramps.gen.soundex import soundex, compare
+from gramps.gen.lib import Event, Person
+from gramps.gen.utils.db import (get_birth_or_fallback, get_death_or_fallback)
+from gramps.gen import datehandler
+from features import Features
+from ftDatabase import fulltextDatabase
+# import cProfile
+# pr = cProfile.Profile()
 
-sys.path.insert(0, '/share/work/Gramps/work') #TMP!!
+sys.path.insert(0, '/share/work/Gramps/work')  # TMP!!
 
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 #
 # Gramps modules
 #
-#-------------------------------------------------------------------------
-from gramps.gen.const import URL_MANUAL_PAGE
-from gramps.gen import datehandler
-from gramps.gen.utils.db import (get_birth_or_fallback, get_death_or_fallback)
-from gramps.gen.lib import Event, Person
-from gramps.gen.soundex import soundex, compare
-from gramps.gen.const import GRAMPS_LOCALE as glocale
+# -------------------------------------------------------------------------
 _ = glocale.translation.sgettext
 
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 #
 # Fulltextdatabase Whoosh
 #
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-from ftDatabase import fulltextDatabase
-from features import Features
 
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 #
 # Helper functions
 #
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+
 
 def get_name_obj(person):
     if person:
@@ -61,9 +63,11 @@ def get_name_obj(person):
     else:
         return None
 
+
 def get_surnames(name):
     """Construct a full surname of the surnames"""
     return ' '.join([surn.get_surname().lower() for surn in name.get_surname_list()])
+
 
 def is_initial(name):
     if len(name) > 2:
@@ -74,12 +78,15 @@ def is_initial(name):
     else:
         return name[0] == name[0].upper()
 
+
 class Match():
     def __init__(self, db, progress, use_soundex, threshold, algoritm):
         self.db = db
         self.progress = progress
         self.my_map = {}
+        self.map = {}
         self.list = []
+        self.length = 0
         self.index = 0
         self.use_soundex = use_soundex
         self.threshold = threshold
@@ -96,8 +103,8 @@ class Match():
         f1_id = p1.get_main_parents_family_handle()
         if f1_id:
             f1 = self.db.get_family_from_handle(f1_id)
-            self.ancestors_of(f1.get_father_handle(),id_list)
-            self.ancestors_of(f1.get_mother_handle(),id_list)
+            self.ancestors_of(f1.get_father_handle(), id_list)
+            self.ancestors_of(f1.get_mother_handle(), id_list)
 
     def do_find_matches(self):
         self.progress.set_pass('Start', '?')
@@ -105,7 +112,7 @@ class Match():
             self.setup_data_structures()
             self.find_potentials(self.threshold)
         except AttributeError as msg:
-            RunDatabaseRepair(str(msg), parent=self.window)
+            # RunDatabaseRepair(str(msg), parent=self.window)
             return
 
     def get_date_strings(self, person):
@@ -149,19 +156,20 @@ class Match():
         length = self.db.get_number_of_people()
 
         self.progress.set_pass(_('Pass 1: Building indexes'), length)
-        self.ftdb = fulltextDatabase(clean=True) # remove old and generate new ft database
+        self.ftdb = fulltextDatabase(clean=True)  # remove old and generate new ft database
 
         for p1_id in self.db.iter_person_handles():
             self.progress.step()
             p1 = self.db.get_person_from_handle(p1_id)
-            #generate index
+            # generate index
             event_data = self.get_date_strings(p1)
             birthDate = event_data[0][0]
             birthPlace = event_data[0][1]
             deathDate = event_data[1][0]
             deathPlace = event_data[1][1]
-            self.ftdb.index(p1, birthDate, birthPlace, deathDate, deathPlace) #extracts names, clean text
-        self.ftdb.commitIndex() # generates family index aswell (not done yet)
+            self.ftdb.index(p1, birthDate, birthPlace, deathDate,
+                            deathPlace)  # extracts names, clean text
+        self.ftdb.commitIndex()  # generates family index aswell (not done yet)
 
     def find_potentials(self, threshold):
         self.map = {}
@@ -169,7 +177,7 @@ class Match():
         length = self.db.get_number_of_people()
         self.progress.set_pass(_('Pass 2: Calculating potential matches'), length)
 
-        done = [] #use set?
+        done = []  # use set?
         for p1key in self.db.iter_person_handles():
             self.progress.step()
             p1 = self.db.get_person_from_handle(p1key)
@@ -190,12 +198,14 @@ class Match():
                 done.append((p1key, p2key))
                 done.append((p2key, p1key))
                 p2 = self.db.get_person_from_handle(p2key)
-                if self.algoritm == 'score': #FIX better way of selecting algoritm
+                if self.algoritm == 'score':  # FIX better way of selecting algoritm
                     chance = self.compare_people(p1, p2) / 6.5  # MAX_CHANCE = 6.5 ??
                     combined_score = score * chance
                     score = combined_score
                 elif self.algoritm == 'svm':
+                    # pr.enable()
                     features = self.features.getFeatures(p1, p2, score)
+                    # pr.disable()
                     score = self.clf.predict_proba([features])[0][1]
                 if score >= threshold:
                     if p1key in self.my_map:
@@ -210,6 +220,7 @@ class Match():
         self.list = sorted(self.map)
         self.length = len(self.list)
         self.progress.close()
+        # pr.print_stats(sort='cumtime')
 
     def compare_people(self, p1, p2):
         # from Gramps find Duplicate
@@ -217,7 +228,7 @@ class Match():
         name1 = p1.get_primary_name()
         name2 = p2.get_primary_name()
 
-        #FIX lower case
+        # FIX lower case
         chance = self.name_match(name1, name2)
         if chance == -1:
             return -1
@@ -248,35 +259,35 @@ class Match():
 
         value = self.date_match(birth1.get_date_object(),
                                 birth2.get_date_object())
-        if value == -1 :
+        if value == -1:
             return -1
         chance += value
 
         value = self.date_match(death1.get_date_object(),
                                 death2.get_date_object())
-        if value == -1 :
+        if value == -1:
             return -1
         chance += value
 
         value = self.place_match(birth1.get_place_handle(),
                                  birth2.get_place_handle())
-        if value == -1 :
+        if value == -1:
             return -1
         chance += value
 
         value = self.place_match(death1.get_place_handle(),
                                  death2.get_place_handle())
-        if value == -1 :
+        if value == -1:
             return -1
         chance += value
 
         ancestors = []
-        self.ancestors_of(p1.get_handle(),ancestors)
+        self.ancestors_of(p1.get_handle(), ancestors)
         if p2.get_handle() in ancestors:
             return -1
 
         ancestors = []
-        self.ancestors_of(p2.get_handle(),ancestors)
+        self.ancestors_of(p2.get_handle(), ancestors)
         if p1.get_handle() in ancestors:
             return -1
 
@@ -315,7 +326,7 @@ class Match():
             else:
                 mom2 = None
 
-            value = self.name_match(mom1,mom2)
+            value = self.name_match(mom1, mom2)
             if value == -1:
                 return -1
 
@@ -336,7 +347,7 @@ class Match():
                             father2 = self.db.get_person_from_handle(father2_id)
                             fname1 = get_name_obj(father1)
                             fname2 = get_name_obj(father2)
-                            value = self.name_match(fname1,fname2)
+                            value = self.name_match(fname1, fname2)
                             if value != -1:
                                 chance += value
                 else:
@@ -350,13 +361,13 @@ class Match():
                             mother2 = self.db.get_person_from_handle(mother2_id)
                             mname1 = get_name_obj(mother1)
                             mname2 = get_name_obj(mother2)
-                            value = self.name_match(mname1,mname2)
+                            value = self.name_match(mname1, mname2)
                             if value != -1:
                                 chance += value
         return chance
 
     def date_match(self, date1, date2):
-        #FIX so that
+        # FIX so that
         # 1712-12-03 :: 1715-10-02 = -1.0 Different year
         # 0000-00-00 :: 0000-00-00 = 0.0  No data
         # 1685-00-00 :: 1685-00-00 = 0.75 just year
@@ -367,8 +378,8 @@ class Match():
         if date1.is_empty() or date2.is_empty():
             return 0
         if date1.is_compound() or date2.is_compound():
-            return self.range_compare(date1,date2)
-        if date1.match(date2) and ( date1.get_year() == date2.get_year() ):
+            return self.range_compare(date1, date2)
+        if date1.match(date2) and (date1.get_year() == date2.get_year()):
             if not date1.get_month_valid() or not date2.get_month_valid():
                 return 0.75
             if date1.get_month() == date2.get_month():
@@ -390,7 +401,7 @@ class Match():
             if (start_date_2 <= start_date_1 <= stop_date_2 or
                 start_date_1 <= start_date_2 <= stop_date_1 or
                 start_date_2 <= stop_date_1 <= stop_date_2 or
-                start_date_1 <= stop_date_2 <= stop_date_1):
+                    start_date_1 <= stop_date_2 <= stop_date_1):
                 return 0.5
             else:
                 return -1
@@ -408,7 +419,7 @@ class Match():
     def name_compare(self, s1, s2):
         if self.use_soundex:
             try:
-                return compare(s1,s2)
+                return compare(s1, s2)
             except UnicodeEncodeError:
                 return s1 == s2
         else:
@@ -424,7 +435,7 @@ class Match():
         srn2 = get_surnames(name1)
         sfx2 = name1.get_suffix()
 
-        if not self.name_compare(srn1, srn2): #What if surnames is a list?
+        if not self.name_compare(srn1, srn2):  # What if surnames is a list?
             return -1
         if sfx1 != sfx2:
             if sfx1 != "" and sfx2 != "":
@@ -462,8 +473,8 @@ class Match():
         if name1 == name2:
             return 1
 
-        list1 = name1.replace(","," ").split()
-        list2 = name2.replace(","," ").split()
+        list1 = name1.replace(",", " ").split()
+        list2 = name2.replace(",", " ").split()
 
         value = 0
         for name in list1:
@@ -472,7 +483,7 @@ class Match():
                     value += 0.5
                 elif name[0] == name2[0] and self.name_compare(name, name2):
                     value += 0.25
-        return min(value,1) if value else -1
+        return min(value, 1) if value else -1
 
     def list_reduce(self, list1, list2):
         value = 0
@@ -486,4 +497,4 @@ class Match():
                     value += 0.5
                 elif name[0] == name2[0] and self.name_compare(name, name2):
                     value += 0.25
-        return min(value,1) if value else -1
+        return min(value, 1) if value else -1

@@ -3,10 +3,10 @@
 
 import math
 import difflib
-import json  #TMP!! FIX
 _cache = {}
 
-def cos(l1, l2): #NOT USED
+
+def cos(l1, l2):  # NOT USED
     """
     Similarity between two vectors = cosine for the angle between the vectors:
     cosine  = ( V1 * V2 ) / ||V1|| x ||V2||
@@ -16,19 +16,21 @@ def cos(l1, l2): #NOT USED
     v2 = l2.split()
     s = 0
     for w1 in v1:
-        if w1 in v2: s += 1
+        if w1 in v2:
+            s += 1
     return s / (math.sqrt(len(v1)) * math.sqrt(len(v2)))
 
-class Features(): # Evt move to Match?
+
+class Features():  # Evt move to Match?
     # For Gramps data
     def __init__(self, db):
         self.db = db
-        #cache of personFeatures with key (handle1, handle2)
+        # cache of personFeatures with key (handle1, handle2)
         self.cache = {}
-        self.featureList = ['score', 'personSim', 'birthSim', 'birthYearSim', 'deathSim', 'deathYearSim',
-                            'firstNameSim', 'lastNameSim', 'familySim', 'firstNameStrSim',
-                            'compareLifespans']
-                            #'ParentChild', 'commonFamily']
+        self.featureList = ['score', 'personSim', 'birthSim', 'birthYearSim', 'deathSim',
+                            'deathYearSim', 'firstNameSim', 'lastNameSim', 'familySim',
+                            'firstNameStrSim', 'compareLifespans']
+        # 'ParentChild', 'commonFamily']
 
     def get_names(self, name):
         """
@@ -43,10 +45,12 @@ class Features(): # Evt move to Match?
             return 0 if any of n1, n2 is empty
             can be used on names, normalised names
         """
-        if (not n1) or (not n2): return 0
+        if (not n1) or (not n2):
+            return 0
         nn1 = n1.strip().split()
         nn2 = n2.strip().split()
-        if (not nn1) or (not nn2): return 0
+        if (not nn1) or (not nn2):
+            return 0
         if (len(nn1) > len(nn2)):
             return (2.0 * len(set(nn2).intersection(nn1)) - len(nn2)) / float(
                 len(nn2))
@@ -54,30 +58,31 @@ class Features(): # Evt move to Match?
             return (2.0 * len(set(nn1).intersection(nn2)) - len(nn1)) / float(
                 len(nn1))
 
-    def nameStrSim(self, n1, n2):  #NOT USED??
-        """ Compare names: n1 n2 strings, blankspace separated names
-            return value between -1 (mismatch) and 1 (match)
-            return 0 if any of n1, n2 is empty
-            can be used on names, normalised names
-        """
-        if (not n1) or (not n2): return 0
-        nn1 = n1.strip().split()
-        nn2 = n2.strip().split()
-        if (not nn1) or (not nn2): return 0
-        overlap = set(nn2).intersection(nn1)
-        rest1 = ''.join(sort(list(set(nn1).difference(overlap))))
-        rest2 = ''.join(sort(list(set(nn2).difference(overlap))))
-        s = difflib.SequenceMatcher(None, rest1, rest2).ratio()
-        sim = (len(overlap) + s) / (len(overlap) + 1.0)
-        return 2.0 * (sim -0.5)
-    
+    # def nameStrSim(self, n1, n2):  #NOT USED??
+    #     """ Compare names: n1 n2 strings, blankspace separated names
+    #         return value between -1 (mismatch) and 1 (match)
+    #         return 0 if any of n1, n2 is empty
+    #         can be used on names, normalised names
+    #     """
+    #     if (not n1) or (not n2): return 0
+    #     nn1 = n1.strip().split()
+    #     nn2 = n2.strip().split()
+    #     if (not nn1) or (not nn2): return 0
+    #     overlap = set(nn2).intersection(nn1)
+    #     rest1 = ''.join(sort(list(set(nn1).difference(overlap))))
+    #     rest2 = ''.join(sort(list(set(nn2).difference(overlap))))
+    #     s = difflib.SequenceMatcher(None, rest1, rest2).ratio()
+    #     sim = (len(overlap) + s) / (len(overlap) + 1.0)
+    #     return 2.0 * (sim -0.5)
+
     def strSim(self, txt1, txt2):
         """
           String similarity
           txt1, txt2 are strings
           returns a value between -1 and +1
         """
-        if (not txt1) or (not txt2): return 0
+        if (not txt1) or (not txt2):
+            return 0
         s = difflib.SequenceMatcher(None, txt1, txt2).ratio()
         return 2.0 * (s - 0.5)
 
@@ -96,7 +101,7 @@ class Features(): # Evt move to Match?
             return 0
         if date1.is_compound() or date2.is_compound():
             return self.range_compare(date1, date2)
-        if date1.match(date2) and ( date1.get_year() == date2.get_year() ):
+        if date1.match(date2) and (date1.get_year() == date2.get_year()):
             if not date1.get_month_valid() or not date2.get_month_valid():
                 return 0.75
             if date1.get_month() == date2.get_month():
@@ -123,7 +128,7 @@ class Features(): # Evt move to Match?
             if (start_date_2 <= start_date_1 <= stop_date_2 or
                 start_date_1 <= start_date_2 <= stop_date_1 or
                 start_date_2 <= stop_date_1 <= stop_date_2 or
-                start_date_1 <= stop_date_2 <= stop_date_1):
+                    start_date_1 <= stop_date_2 <= stop_date_1):
                 return 0.5
             else:
                 return -1
@@ -169,11 +174,11 @@ class Features(): # Evt move to Match?
             death = Event()
         return {'birth': birth, 'death': death}
 
-    #Possibly test marriage dates aswell??
-    
+    # Possibly test marriage dates aswell??
+
     def eventSim(self, ev1, ev2):
         if ev1.is_empty() or ev2.is_empty():
-            return 0        
+            return 0
         return (self.dateSim(ev1.get_date_object(), ev2.get_date_object()) +
                 self.placeSim(ev1.get_place_handle(), ev2.get_place_handle())) / 2.0
 
@@ -182,10 +187,10 @@ class Features(): # Evt move to Match?
         date2 = ev2.get_date_object()
         if date1.is_empty() or date2.is_empty() or date1.is_compound() or date2.is_compound():
             return 0
-        elif date1.match(date2) and ( date1.get_year() == date2.get_year() ):
+        elif date1.match(date2) and (date1.get_year() == date2.get_year()):
             return 1
-        #evt ??
-        #elif abs(date1.get_year() - date2.get_year()) <= 1:
+        # evt ??
+        # elif abs(date1.get_year() - date2.get_year()) <= 1:
         #    return 0.25
         else:
             return -1
@@ -198,18 +203,18 @@ class Features(): # Evt move to Match?
         """
         birth1 = events1['birth']
         death2 = events2['death']
-        if (birth1.is_empty() or death2.is_empty()) :
+        if (birth1.is_empty() or death2.is_empty()):
             pass
         else:
             birth1Year = birth1.get_date_object().get_year()
             death2Year = death2.get_date_object().get_year()
             if birth1Year > death2Year:
                 return -1.0
-            elif death2Year - birth1Year > 110: 
+            elif death2Year - birth1Year > 110:
                 return -1.0
         birth2 = events1['birth']
         death1 = events2['death']
-        if (birth2.is_empty() or death1.is_empty()) :
+        if (birth2.is_empty() or death1.is_empty()):
             pass
         else:
             birth2Year = birth2.get_date_object().get_year()
@@ -224,21 +229,22 @@ class Features(): # Evt move to Match?
         """
            Test if there is a parent - child relation between persons
         """
-        pass
+        return False
 
     def CommonFamily(self, person1, person2):
         """
            Test if there already is a match in familes (parents or children) of the matched pair
         """
-        pass
-    
+        return False
+
     def familySim(self, person1, person2):
         """
           person1, person2: Gramps Person objects
           similarity: between person1 and person2
           return: similarity of family (person and its parents)
         """
-        #Think about caching personSim in some way?
+        # FIX Needs optimizing
+        # Think about caching personSim in some way?
         fam1_handle = person1.get_main_parents_family_handle()
         fam2_handle = person2.get_main_parents_family_handle()
         if not fam1_handle or not fam2_handle:
@@ -271,7 +277,8 @@ class Features(): # Evt move to Match?
         """
           person1, person2: Gramps Person objects
           return a dict with features (-1, 1) for
-              [personSim, firstNameSim, lastNameSim, birthSim, birthYearSim, deathSim, deathYearSim] 
+              [personSim, firstNameSim, lastNameSim, birthSim, birthYearSim,
+               deathSim, deathYearSim]
         """
         try:
             return self.cache[(person1.handle, person2.handle)]
@@ -282,14 +289,14 @@ class Features(): # Evt move to Match?
         (first2, last2) = self.get_names(person2.get_primary_name())
         feature['firstNameSim'] = self.nameSim(first1, first2)
         feature['firstNameStrSim'] = self.strSim(first1, first2)
-        feature['lastNameSim'] = self.nameSim(last1, last2) #self.nameStrSim(last1, last2) #
+        feature['lastNameSim'] = self.nameSim(last1, last2)  # self.nameStrSim(last1, last2) #
         events1 = self.getEvents(person1)
         events2 = self.getEvents(person2)
         feature['birthSim'] = self.eventSim(events1['birth'], events2['birth'])
         feature['deathSim'] = self.eventSim(events1['death'], events2['death'])
         feature['birthYearSim'] = self.eventYearSim(events1['birth'], events2['birth'])
         feature['deathYearSim'] = self.eventYearSim(events1['death'], events2['death'])
-        #Compare lifespans (p2 död mer 100 år sennare än p1 född eller död före född)
+        # Compare lifespans (p2 död mer 100 år sennare än p1 född eller död före född)
         if 'compareLifespans' in self.featureList:
             feature['compareLifespans'] = self.compareLifespans(events1, events2)
         if 'ParentChild' in self.featureList:
@@ -315,18 +322,16 @@ class Features(): # Evt move to Match?
         self.cache[(person1.handle, person2.handle)] = feature
         self.cache[(person2.handle, person1.handle)] = feature
         return feature
-    
+
     def getFeatures(self, person1, person2, score=0):
         """
           person1, person2: Gramps Person objects
           score: score from freetext-search normalised
           return a dict/vector with features (-1, 1) for
-              [score, personSim, firstNameSim, lastNameSim, birthSim, birthYearSim, deathSim, deathYearSim, familySim] 
+              [score, personSim, firstNameSim, lastNameSim, birthSim, birthYearSim,
+               deathSim, deathYearSim, familySim]
         """
         feature = self.getPersonFeatures(person1, person2)
         feature['score'] = score
         feature['familySim'] = self.familySim(person1, person2)
-        #log = (person1.gramps_id, person2.gramps_id, self.get_names(person1.get_primary_name()), self.get_names(person2.get_primary_name()), feature)
-        #print(json.dumps(log))
         return list(map(lambda x: feature[x], self.featureList))
-

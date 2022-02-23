@@ -6,11 +6,13 @@ import re
 from whoosh.fields import Schema, ID, KEYWORD
 from whoosh import index
 from whoosh import qparser
-from whoosh import scoring
+# from whoosh import scoring
+
 
 class fulltextDatabase():
     def __init__(self, clean=False, writer=True):
-        schema = Schema(grampsHandle=ID(stored=True), sex=KEYWORD(stored=True), person=KEYWORD(stored=True, lowercase=True))
+        schema = Schema(grampsHandle=ID(stored=True), sex=KEYWORD(
+            stored=True), person=KEYWORD(stored=True, lowercase=True))
         directory = os.path.abspath(os.path.dirname(__file__)) + '/ftindex'
         if not os.path.exists(directory):
             os.mkdir(directory)
@@ -18,15 +20,16 @@ class fulltextDatabase():
             self.ix = index.open_dir(directory)
         else:
             self.ix = index.create_in(directory, schema)
-        if writer: self.writer = self.ix.writer()
+        if writer:
+            self.writer = self.ix.writer()
         self.parser = qparser.QueryParser('person', schema=schema, group=qparser.OrGroup)
 
     def cleanText(self, text):
-        #lower case
-        #ersätta alla icke-bokstäver med blanktecken
-        text = re.sub('[^\s\w]|\d|_', ' ', text.lower())
+        # lower case
+        # ersätta alla icke-bokstäver med blanktecken
+        text = re.sub('[^\s\w]|\d|_', ' ', text.lower())  # FIXME
         return text
-    
+
     def addDocument(self, grampsHandle, text, sex=''):
         self.writer.add_document(grampsHandle=grampsHandle, sex=sex, person=text)
 
@@ -45,21 +48,21 @@ class fulltextDatabase():
             text.append("B" + self.cleanText(birthPlace.replace(' ', '')))
         if deathPlace:
             text.append("D" + self.cleanText(deathPlace.replace(' ', '')))
-        #TODO normalize place
+        # TODO normalize place
         self.addDocument(person.handle, ' '.join(text), sex="gender%s" % str(person.get_gender()))
 
     def commitIndex(self):
         self.writer.commit()
-        #Split on 2 dbs - person and family
-        #generate family database here
-        #get_all_handles
+        # Split on 2 dbs - person and family
+        # generate family database here
+        # get_all_handles
         #   find father and mother
         #   person.get_main_parents_family_handle()
         #     db.get_family_from_handle
         #     family.get_father_handle
         #     family.get_mother_handle
         #   gen familyText, index
-        #commit familyText db
+        # commit familyText db
 
     def getMatchesForHandle(self, handle, ant=5):
         with self.ix.searcher() as searcher:
@@ -69,8 +72,10 @@ class fulltextDatabase():
             hits = []
             maxScore = 0.0
             for r in res:
-                if r.score > maxScore: maxScore = r.score
+                if r.score > maxScore:
+                    maxScore = r.score
                 if r['grampsHandle'] == handle:
                     continue
-                hits.append({'grampsHandle': r['grampsHandle'], 'score': r.score / maxScore}) #FIX a global maxScore
+                # FIX a global maxScore
+                hits.append({'grampsHandle': r['grampsHandle'], 'score': r.score / maxScore})
             return hits
