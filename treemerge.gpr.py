@@ -10,7 +10,7 @@ register(TOOL,
          description = _("Searches the entire database, looking for "
                          "individual entries that may represent the same person."
                          "Verify by viewing small tree around the matched persons."),
-         version = '0.7alpha',
+         version = '0.8beta',
          gramps_target_version = '5.2',
          status = STABLE,
          fname = 'treemerge.py',

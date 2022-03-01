@@ -197,11 +197,11 @@ class TreeMerge(tool.Tool, ManagedWindow):  # CHECK use BatchTool when using aut
         # display_help(WIKI_HELP_PAGE , WIKI_HELP_SEC)
 
     def do_notmatch(self, obj):
-        store, selelct_line = self.mlist.selection.get_selected()
-        if not selelct_line:
+        store, select_line = self.mlist.selection.get_selected()
+        if not select_line:
             self.infoMsg("Please select a match above")
             return
-        (self.p1, self.p2) = self.mlist.get_object(selelct_line)
+        (self.p1, self.p2) = self.mlist.get_object(select_line)
         self.dellist.add(self.p1)
         self.redraw()
 
@@ -262,11 +262,11 @@ class TreeMerge(tool.Tool, ManagedWindow):  # CHECK use BatchTool when using aut
             self.mlist.add([c1, pn1, pn2, c2], (p1key, p2key))
 
     def do_merge(self, obj):
-        store, selelct_line = self.mlist.selection.get_selected()
-        if not selelct_line:
+        store, select_line = self.mlist.selection.get_selected()
+        if not select_line:
             self.infoMsg("Please select a match above")
             return
-        (self.p1, self.p2) = self.mlist.get_object(selelct_line)
+        (self.p1, self.p2) = self.mlist.get_object(select_line)
         self.notImplem("Merge 2 matched persons")
         MergePerson(self.dbstate, self.uistate, self.track, self.p1, self.p2, self.on_update, True)
 
@@ -292,19 +292,21 @@ class TreeMerge(tool.Tool, ManagedWindow):  # CHECK use BatchTool when using aut
         if not res:
             return  # False
         for (p1key, p2key) in matches:
-            primary = self.dbstate.db.get_person_from_handle(p1key)
-            secondary = self.dbstate.db.get_person_from_handle(p2key)
-            query = MergePersonQuery(self.dbstate.db, primary, secondary)
-            query.execute()
-            # Handle names, events: birth, death
-            # person = self.dbstate.db.get_person_from_handle(p1key)
-
+            try:
+                primary = self.dbstate.db.get_person_from_handle(p1key)
+                secondary = self.dbstate.db.get_person_from_handle(p2key)
+                query = MergePersonQuery(self.dbstate.db, primary, secondary)
+                query.execute()
+                # Handle names, events: birth, death
+                # person = self.dbstate.db.get_person_from_handle(p1key)
+            except HandleError:
+                pass
     def do_comp(self, obj):
-        store, selelct_line = self.mlist.selection.get_selected()
-        if not selelct_line:
+        store, select_line = self.mlist.selection.get_selected()
+        if not select_line:
             self.infoMsg("Please select a match above")
             return
-        (self.p1, self.p2) = self.mlist.get_object(selelct_line)
+        (self.p1, self.p2) = self.mlist.get_object(select_line)
         if self.compareview:
             self.compareview.close('')
         self.uistate.set_active(self.p1, 'Person')

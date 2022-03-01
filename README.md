@@ -1,5 +1,5 @@
 # Gramps_Treemerge
-A Gramps plugin to match and merge data from 2 trees
+A Gramps plugin to match (detect overlap) and merge data from 2 trees
 
 # DESIGN
 
