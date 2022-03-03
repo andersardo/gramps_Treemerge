@@ -40,6 +40,7 @@ from gi.repository import GooCanvas
 
 from gramps.gui.dialog import QuestionDialog2
 from gramps.gen.merge import MergePersonQuery
+from gramps.gen.merge.mergeeventquery import MergeEventQuery
 from gramps.gui.glade import Glade
 from gramps.gui.utils import ProgressMeter
 from gramps.gui.plug import tool
@@ -297,10 +298,11 @@ class TreeMerge(tool.Tool, ManagedWindow):  # CHECK use BatchTool when using aut
                 secondary = self.dbstate.db.get_person_from_handle(p2key)
                 query = MergePersonQuery(self.dbstate.db, primary, secondary)
                 query.execute()
-                # Handle names, events: birth, death
-                # person = self.dbstate.db.get_person_from_handle(p1key)
+                person = self.dbstate.db.get_person_from_handle(p1key)
+                self.cleanEventsFamilies(person)
             except HandleError:
                 pass
+
     def do_comp(self, obj):
         store, select_line = self.mlist.selection.get_selected()
         if not select_line:
@@ -338,6 +340,77 @@ class TreeMerge(tool.Tool, ManagedWindow):  # CHECK use BatchTool when using aut
         """dummy callback, needed because a shared glade file is used for
         both toplevel windows and all signals must be handled.
         """
+
+    def cleanEventsFamilies(self, person):
+        """
+        Cleanup person:
+          Merges identical birth, death events
+          Delete families with exactly 1 person and no events 
+        """
+        # Events
+        birth = None
+        death = None
+        for evref in person.get_event_ref_list():
+            event =  self.dbstate.db.get_event_from_handle(evref.ref)
+            if event.get_type().is_birth():
+                if birth:
+                    birth = self.Merge(birth, event)
+                else:
+                    birth = event
+            elif event.get_type().is_death():
+                if death:
+                    death = self.Merge(death, event)
+                else:
+                    death = event
+        # Families
+        for family_handle in (person.get_family_handle_list() + person.get_parent_family_handle_list()):
+            family = self.dbstate.db.get_family_from_handle(family_handle)
+            if family:
+                ant = len(family.get_child_ref_list())
+                if family.get_father_handle():
+                    ant += 1
+                if family.get_mother_handle():
+                    ant += 1
+                if (ant == 1) and (len(family.get_event_ref_list()) == 0):
+                    #delete family
+                    family.set_father_handle(None)
+                    family.set_mother_handle(None)
+                    family.set_child_ref_list(None) #eller []
+
+    def Merge(self, ev1, ev2):
+        if not ev1:
+            return ev2
+        if ev1.are_equal(ev2):
+            q = MergeEventQuery(self.dbstate, ev1, ev2)
+            q.execute()
+            return ev1
+        dateOK = False
+        placeOK = False
+        phoenix = ev1
+        titanic = ev2
+        #
+        if ev1.get_place_handle() == ev2.get_place_handle():
+            placeOK = True
+        if ev1.get_date_object().is_equal(ev2.get_date_object()):
+            dateOK = True
+        else:
+            # use most complete date?
+            best = ['ev1', 'ev2']
+            if '00' in str(ev1.get_date_object()):
+                best.remove('ev1')
+            if '00' in str(ev2.get_date_object()):
+                best.remove('ev2')
+            if len(best) == 1:
+                dateOK = True
+                if best[0] == 'ev2':
+                    phoenix = ev2
+                    titanic = ev1                
+        if dateOK and placeOK:
+            q = MergeEventQuery(self.dbstate, phoenix, titanic)
+            q.execute()
+            return phoenix
+        else:
+            return ev1
 
 
 class GraphComparePerson(ManagedWindow):
