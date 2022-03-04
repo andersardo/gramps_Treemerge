@@ -9,11 +9,12 @@ The implementation borrows a lot from Gramps plugins as GraphView and 'Find Poss
       and index that in a free-text database
   * Use a person text-representation as a query to the free-text database
   * Test the top X results more detailed for a possible match
-  * Use a machine-learning tool like SVM to categorise matches. SVM is a machine-learning tool that you
+  * Use a machine-learning tool like SVM or ensemble classification to categorise matches.
+    They are machine-learning tools that you
     train to recognize and group objects (feature vectors) into categories.
     In this case feature vectors are comparisons between persons and categories are 'match' and 'no match'.
     A feature vector consists of various aspect like name similarity, event similarity, see below.
-    SVM can give a probability that a match is an exact match 
+    The classification give a probability that a match is an exact match 
 
 The above design avoids the need to compare all persons to all other persons thus cutting the algorithm complexity from
 n-squared to k * n where n is the number of persons in the database and k is an implementation dependent constant.
@@ -21,9 +22,9 @@ n-squared to k * n where n is the number of persons in the database and k is an 
 Matches can be grouped in 3 categories 'certain match', 'maybe', 'certain nomatch' where only 'maybe'
 needs to be inspected manually.
 
-A 'certain match' would be where a SVM calculated probability is above 90 - 95 % of being an exact match. 
+A 'certain match' would be where a calculated probability is above 90 - 95 % of being an exact match. 
 
-SVM categorisation is based on 'feature vectors' where features usually range from -1 (complete miss-match) to
+Categorisation is based on 'feature vectors' where features usually range from -1 (complete miss-match) to
 1 (complete match). Features used are:
   * _score_, How good a hit from the free-text database is
   * _personSim_, Similarity of persons based on name and event-date comparisons
@@ -36,6 +37,11 @@ SVM categorisation is based on 'feature vectors' where features usually range fr
   * _firstNameStrSim_, String similarity of all names sorted and concatenated in a string
   * _lastNameSim_, Name equality
   * _compareLifeSpans_, Lifespans compatible
+
+**[SVM](https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html)**  uses only the above features.
+
+**[Ensemble](https://scikit-learn.org/stable/modules/ensemble.html#stacking)** combines a number of diffrent categorizers
+for better accuracy.
 
 ## TODO/IDEAS
 
@@ -62,8 +68,11 @@ If something goes wrong, you will have a way to go back and start over. Make a G
 
 Start Treemerge from the tools menu ('Family Tree Processing' -> 'Merge 2 trees by matching persons')
 
-Possibly select matching algoritm either 'SVM' SVM-based classification matching or
-'score' similar to Gramps score-based matching. Soundex is only used in 'score'-matching.
+Possibly select matching algoritm either 'SVM' or 'Ensemble' for a machine learning based classification matching or
+'score' which is similar to Gramps score-based matching. Soundex is only used in 'score'-matching.
+
+'score' is the fastest but has least accuracy. 'SVM' is slower but has better accuracy. 'Ensemble' is the slowest algoritm
+but also the method with best accuracy.
 
 Press **Match**
 

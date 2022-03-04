@@ -93,7 +93,8 @@ class Match():
         self.algoritm = algoritm
         self.ftdb = None
         self.features = Features(self.db)
-        self.clf = load(os.path.abspath(os.path.dirname(__file__)) + '/modelV3.pkl')
+        self.svmModel = load(os.path.abspath(os.path.dirname(__file__)) + '/modelV3.pkl')
+        self.ensembleModel = load(os.path.abspath(os.path.dirname(__file__)) + '/modelV3ensemble.pkl')
 
     def ancestors_of(self, p1_id, id_list):
         if (not p1_id) or (p1_id in id_list):
@@ -198,15 +199,22 @@ class Match():
                 done.append((p1key, p2key))
                 done.append((p2key, p1key))
                 p2 = self.db.get_person_from_handle(p2key)
-                if self.algoritm == 'score':  # FIX better way of selecting algoritm
-                    chance = self.compare_people(p1, p2) / 6.5  # MAX_CHANCE = 6.5 ??
-                    combined_score = score * chance
-                    score = combined_score
-                elif self.algoritm == 'svm':
+                if self.algoritm == 'svm':
                     # pr.enable()
                     features = self.features.getFeatures(p1, p2, score)
                     # pr.disable()
-                    score = self.clf.predict_proba([features])[0][1]
+                    score = self.svmModel.predict_proba([features])[0][1]
+                elif self.algoritm == 'ensemble':
+                    features = self.features.getFeatures(p1, p2, score)
+                    score = self.ensembleModel.predict_proba([features])[0][1]
+                elif self.algoritm == 'score':  # FIX better way of selecting algoritm
+                    chance = self.compare_people(p1, p2) / 6.5  # MAX_CHANCE = 6.5 ??
+                    combined_score = score * chance
+                    score = combined_score
+                else:
+                    print("Error algorithm")
+                    #FIX
+                    break
                 if score >= threshold:
                     if p1key in self.my_map:
                         val = self.my_map[p1key]

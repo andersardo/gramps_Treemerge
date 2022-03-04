@@ -137,11 +137,12 @@ class TreeMerge(tool.Tool, ManagedWindow):  # CHECK use BatchTool when using aut
         self.menu.set_active(0)
 
         algoritm = Gtk.ListStore(str, object)
+        algoritm. append(["Ensemble", "ensemble"])
         algoritm. append(["SVM", "svm"])
         algoritm. append(["Score", "score"])
         self.algmenu = top.get_object("algoritm")
         self.algmenu.set_model(algoritm)
-        self.algmenu.set_active(0)
+        self.algmenu.set_active(1)
 
         self.automergecutoff = top.get_object("automergecutoff")
         self.automergecutoff.set_model(my_automergecutoff)
