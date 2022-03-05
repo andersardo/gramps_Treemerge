@@ -71,8 +71,8 @@ Start Treemerge from the tools menu ('Family Tree Processing' -> 'Merge 2 trees 
 Possibly select matching algoritm either 'SVM' or 'Ensemble' for a machine learning based classification matching or
 'score' which is similar to Gramps score-based matching. Soundex is only used in 'score'-matching.
 
-'score' is the fastest but has least accuracy. 'SVM' is slower but has better accuracy. 'Ensemble' is the slowest algoritm
-but also the method with best accuracy.
+('score' is the fastest but has least accuracy. 'SVM' is slower but has better accuracy. 'Ensemble' is the slowest algoritm
+but also the method with best accuracy.)
 
 Press **Match**
 

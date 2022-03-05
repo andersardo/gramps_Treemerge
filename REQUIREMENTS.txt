@@ -1,5 +1,6 @@
 whoosh
 sklearn
+xgboost
 joblib
 Gtk stuff
 xml.parsers
