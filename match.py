@@ -23,6 +23,7 @@
 
 import sys
 import os
+from collections import defaultdict
 from joblib import load  # ??pickle??
 from gramps.gen.const import GRAMPS_LOCALE as glocale
 from gramps.gen.soundex import soundex, compare
@@ -157,8 +158,7 @@ class Match():
         length = self.db.get_number_of_people()
 
         self.progress.set_pass(_('Pass 1: Building indexes'), length)
-        self.ftdb = fulltextDatabase(clean=True)  # remove old and generate new ft database
-
+        self.ftdb = fulltextDatabase(clean=True)  # remove old and generate new ft database - do we always need to reindex??
         for p1_id in self.db.iter_person_handles():
             self.progress.step()
             p1 = self.db.get_person_from_handle(p1_id)
@@ -175,26 +175,38 @@ class Match():
     def find_potentials(self, threshold):
         self.map = {}
         self.my_map = {}
-        length = self.db.get_number_of_people()
-        self.progress.set_pass(_('Pass 2: Calculating potential matches'), length)
-
+        pkeys = defaultdict(list) # Used to detect if a potential match comes from the same import
         done = []  # use set?
+        persons = defaultdict(list)
+        # Find key for latest import
+        latest = 0
         for p1key in self.db.iter_person_handles():
-            self.progress.step()
             p1 = self.db.get_person_from_handle(p1key)
-            # Only match those tagged 'New' (set during import) FIX
-            OK = False
             for tagHandle in p1.tag_list:
                 tag = self.db.get_tag_from_handle(tagHandle).get_name()
-                if tag.startswith('Master'):
-                    print('Found P1 Master', p1.gramps_id)
-                    OK = True
-            if OK:
-                continue
+                if tag.startswith('Imp2'):
+                    dat = int(tag.replace('Imp', ''))
+                    if dat >= latest:
+                        latest = dat
+                        persons[dat].append(p1)
+                        pkeys[dat].append(p1key)
+            if latest == 0: # No import tags
+                persons['NoTag'].append(p1)
+        if not persons[latest]: # No import tags
+            latest = 'NoTag'
+        elif persons['NoTag']:
+            print("TAG ERROR - mix of tagged and not tagged")
+        # Just test persons from latest import or 'NoTag'
+        print('testing latest', latest, len(persons[latest]))
+        length = len(persons[latest])
+        self.progress.set_pass(_('Pass 2: Calculating potential matches'), length)
+        for p1 in persons[latest]:
+            self.progress.step()
+            p1key = p1.handle
             for hit in self.ftdb.getMatchesForHandle(p1key):
                 score = hit['score']
                 p2key = hit['grampsHandle']
-                if (p1key, p2key) in done or (p2key, p1key) in done:
+                if p2key in pkeys[latest]  or (p1key, p2key) in done or (p2key, p1key) in done:
                     continue
                 done.append((p1key, p2key))
                 done.append((p2key, p1key))
