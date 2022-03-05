@@ -9,7 +9,7 @@ The implementation borrows a lot from Gramps plugins as GraphView and 'Find Poss
       and index that in a free-text database
   * Use a person text-representation as a query to the free-text database
   * Test the top X results more detailed for a possible match
-  * Use a machine-learning tool like SVM or ensemble classification to categorise matches.
+  * Use a machine-learning tool like SVM or ensemble classification to categorize matches.
     They are machine-learning tools that you
     train to recognize and group objects (feature vectors) into categories.
     In this case feature vectors are comparisons between persons and categories are 'match' and 'no match'.
@@ -17,10 +17,10 @@ The implementation borrows a lot from Gramps plugins as GraphView and 'Find Poss
     The classification give a probability (shown as 'Rating' in the list of matches) that a match is an exact match.\
     **[SVM](https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html)** uses only the features described below\
     **[Ensemble](https://scikit-learn.org/stable/modules/ensemble.html#stacking)** combines a number of different
-    categorizersd for better accuracy
+    categorizers for better accuracy
 
 The above design avoids the need to compare all persons to all other persons thus cutting the algorithm complexity from
-n-squared to k * n where n is the number of persons in the database and k is an implementation dependent constant.
+n-squared to `k * n` where `n` is the number of persons in the database and `k` is an implementation dependent constant.
 
 Matches can be grouped in 3 categories 'certain match', 'maybe', 'certain nomatch' where only 'maybe'
 needs to be inspected manually.
@@ -81,6 +81,7 @@ Select matching algoritm - either 'SVM' or 'Ensemble' for a machine learning bas
 Press **Match**
 
 If **Automerge** is pressed all matched pairs with a rating above the selected **Automerge rating cutoff** will be merged.
+An effort will be done to merge compatible events during this process.
 
 Select a matched pair. If you press **Merge** a Gramps normal PersonMerge will be started.
 
@@ -99,5 +100,3 @@ Clicking on a person in the graph will set the active person which
 can be usefull if you are using a chart like GraphView and want to inspect the families in more detail.
 
 If you press **Merge** a Gramps normal PersonMerge will be started.
-
-When persons are merged an effort will be done to merge compatible events.
