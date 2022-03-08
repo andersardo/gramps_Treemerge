@@ -17,7 +17,7 @@ The implementation borrows a lot from Gramps plugins as GraphView and 'Find Poss
     The classification give a probability (shown as 'Rating' in the list of matches) that a match is an exact match.\
     **[SVM](https://scikit-learn.org/stable/modules/generated/sklearn.svm.SVC.html)** uses only the features described below\
     **[Ensemble](https://scikit-learn.org/stable/modules/ensemble.html#stacking)** combines a number of different
-    categorizers for better accuracy
+    categorizers
 
 The above design avoids the need to compare all persons to all other persons thus cutting the algorithm complexity from
 n-squared to `k * n` where `n` is the number of persons in the database and `k` is an implementation dependent constant.
@@ -74,7 +74,7 @@ Select matching algoritm - either 'SVM' or 'Ensemble' for a machine learning bas
 'score' which is similar to Gramps score-based matching. Soundex is only used in 'score'-matching.
   * 'score' is the fastest but has least accuracy
   * 'SVM' is slower but has better accuracy
-  * 'Ensemble' is the slowest algoritm but also the method with best accuracy
+  * 'Ensemble' is the slowest algoritm combining SVM with other classifications methods <!-- but also the method with best accuracy -->
 
 **Match Threshold** just selects which matches make it into the list of **Matches**
 
