@@ -46,7 +46,7 @@ from gi.repository import GooCanvas
 from gramps.gen.constfunc import win
 # -------------------------------------------------------------------------
 #
-# Fulltextdatabase Whoosh
+# Fulltextdatabase sqlite3 FTS5
 #
 # -------------------------------------------------------------------------
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))

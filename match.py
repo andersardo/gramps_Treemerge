@@ -46,7 +46,7 @@ _ = glocale.translation.sgettext
 
 # -------------------------------------------------------------------------
 #
-# Fulltextdatabase Whoosh
+# Fulltextdatabase sqlite3 FTS5
 #
 # -------------------------------------------------------------------------
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))

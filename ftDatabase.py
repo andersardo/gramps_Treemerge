@@ -1,38 +1,45 @@
 # -*- coding: utf-8 -*-
-"""API for fulltext index and search with whoosh"""
+"""API for fulltext index and search with Sqlite"""
 
 import os.path
 import re
-from whoosh.fields import Schema, ID, KEYWORD
-from whoosh import index
-from whoosh import qparser
-# from whoosh import scoring
-
+import sqlite3
 
 class fulltextDatabase():
     def __init__(self, clean=False, writer=True):
-        schema = Schema(grampsHandle=ID(stored=True), sex=KEYWORD(
-            stored=True), person=KEYWORD(stored=True, lowercase=True))
         directory = os.path.abspath(os.path.dirname(__file__)) + '/ftindex'
         if not os.path.exists(directory):
             os.mkdir(directory)
-        if not clean and index.exists_in(directory):
-            self.ix = index.open_dir(directory)
-        else:
-            self.ix = index.create_in(directory, schema)
-        if writer:
-            self.writer = self.ix.writer()
-        self.parser = qparser.QueryParser('person', schema=schema, group=qparser.OrGroup)
+        databaseFile = directory + "/sqlite.db"  #os.join??
+        if clean and os.path.isfile(databaseFile):
+            os.remove(databaseFile)
+        self.db = sqlite3.connect(databaseFile, detect_types=sqlite3.PARSE_DECLTYPES|sqlite3.PARSE_COLNAMES,
+                                  check_same_thread=False)
+        self.db.row_factory = sqlite3.Row
+        self.cur = self.db.cursor()
+        if clean:
+            self.createTables()
+        
+    def __del__(self):
+        self.db.close()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.db.close()
+
+    def createTables(self):
+        #schema = "grampsHandle, sex, person"
+        self.cur.execute("CREATE VIRTUAL TABLE ft USING fts5(grampsHandle, sex, person)")
+        self.db.commit()
 
     def cleanText(self, text):
         # lower case
         # ersätta alla icke-bokstäver med blanktecken
         text = re.sub('[^\s\w]|\d|_', ' ', text.lower())  # FIXME
-        return text
+        return text.strip()
 
     def addDocument(self, grampsHandle, text, sex=''):
-        self.writer.add_document(grampsHandle=grampsHandle, sex=sex, person=text)
-
+        self.cur.execute("INSERT INTO ft VALUEs (?, ?, ?)", (grampsHandle, sex, text))
+ 
     def index(self, person, birthDate, birthPlace, deathDate, deathPlace):
         """Generate fulltext from person-record"""
         text = []
@@ -40,10 +47,17 @@ class fulltextDatabase():
         text.append(self.cleanText(name.get_first_name()))
         for surn in name.get_surname_list():
             text.append("LN" + self.cleanText(surn.get_surname()))
+        #FIX dateyears in addion to full date
         if birthDate:
-            text.append("B" + birthDate)
+            bDate = birthDate.replace('-', '')
+            text.append("B" + bDate)
+            if len(bDate) > 5:
+                text.append("B" + bDate[0:4])
         if deathDate:
-            text.append("D" + deathDate)
+            dDate = deathDate.replace('-', '')
+            text.append("D" + dDate)
+            if len(dDate) > 5:
+                text.append("D" + dDate[0:4])
         if birthPlace:
             text.append("B" + self.cleanText(birthPlace.replace(' ', '')))
         if deathPlace:
@@ -52,30 +66,33 @@ class fulltextDatabase():
         self.addDocument(person.handle, ' '.join(text), sex="gender%s" % str(person.get_gender()))
 
     def commitIndex(self):
-        self.writer.commit()
-        # Split on 2 dbs - person and family
-        # generate family database here
-        # get_all_handles
-        #   find father and mother
-        #   person.get_main_parents_family_handle()
-        #     db.get_family_from_handle
-        #     family.get_father_handle
-        #     family.get_mother_handle
-        #   gen familyText, index
-        # commit familyText db
+        self.db.commit()
 
     def getMatchesForHandle(self, handle, ant=5):
-        with self.ix.searcher() as searcher:
-            res = searcher.document(grampsHandle=handle)
-            q = self.parser.parse("sex:%s AND (%s)" % (res['sex'], res['person']))
-            res = searcher.search(q, limit=ant, terms=False)
-            hits = []
-            maxScore = 0.0
-            for r in res:
-                if r.score > maxScore:
-                    maxScore = r.score
-                if r['grampsHandle'] == handle:
-                    continue
-                # FIX a global maxScore
-                hits.append({'grampsHandle': r['grampsHandle'], 'score': r.score / maxScore})
-            return hits
+        result = "%s\n" % (handle)  #TMP
+        self.cur.execute("SELECT grampsHandle, sex, person FROM ft WHERE grampsHandle='%s'" % handle)
+        for row in self.cur:
+            #person = row['person']
+            #  Use OR propability search
+            person = ' OR '.join(row['person'].split())
+            sex = row['sex']
+        sql = "SELECT grampsHandle,person,rank FROM ft WHERE person MATCH '%s' AND sex='%s' ORDER BY RANK LIMIT %d" % (person, sex, ant)
+        self.cur.execute(sql)
+        hits = []
+        maxScore = 0.0
+        for row in self.cur:
+            score = - row['rank']
+            if score > maxScore:
+                maxScore = score
+            if (score / maxScore) < 0.5:
+                break
+            #result += "%s, %s, %s, %s\n" % (row['grampsHandle'], row['person'], str(score), str(maxScore))
+            result += "%s, %s\n" % (row['grampsHandle'], row['person'])
+            if row['grampsHandle'] == handle:
+                continue
+            # FIX a global maxScore
+            hits.append({'grampsHandle': row['grampsHandle'], 'score': score / maxScore})
+        with open(os.path.abspath(os.path.dirname(__file__)) + '/ftindex/sqlite.txt', 'a') as f:
+            f.write(result)
+            f.write("--\n")
+        return hits
