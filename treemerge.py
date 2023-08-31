@@ -452,7 +452,11 @@ class GraphComparePerson(ManagedWindow):
         self.show()
 
     def close(self, obj, t=None):
-        ManagedWindow.close(self, *obj)
+        #=????????????????????
+        try:
+            ManagedWindow.close(self, *obj)
+        except:
+            pass
 
     def on_help_clicked(self, obj):
         """Display the relevant portion of Gramps manual"""
