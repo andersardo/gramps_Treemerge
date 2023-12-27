@@ -37,6 +37,9 @@ class fulltextDatabase():
         text = re.sub('[^\s\w]|\d|_', ' ', text.lower())  # FIXME
         return text.strip()
 
+    def cleanDate(self, datestring):
+        return re.sub(r'[^\d]', '', datestring)  # remove all non-digits?
+    
     def addDocument(self, grampsHandle, text, sex=''):
         self.cur.execute("INSERT INTO ft VALUEs (?, ?, ?)", (grampsHandle, sex, text))
  
@@ -49,19 +52,19 @@ class fulltextDatabase():
             text.append("LN" + self.cleanText(surn.get_surname()))
         #FIX dateyears in addion to full date
         if birthDate:
-            bDate = birthDate.replace('-', '')
+            bDate = birthDate.replace('-', '') #  use cleanDate?
             text.append("B" + bDate)
             if len(bDate) > 5:
                 text.append("B" + bDate[0:4])
         if deathDate:
-            dDate = deathDate.replace('-', '')
+            dDate = deathDate.replace('-', '') #  use cleanDate
             text.append("D" + dDate)
             if len(dDate) > 5:
                 text.append("D" + dDate[0:4])
         if birthPlace:
-            text.append("B" + self.cleanText(birthPlace.replace(' ', '')))
+            text.append("B" + self.cleanText(birthPlace.replace(' ', '')))  # Place as one word
         if deathPlace:
-            text.append("D" + self.cleanText(deathPlace.replace(' ', '')))
+            text.append("D" + self.cleanText(deathPlace.replace(' ', '')))  # Place as one word
         # TODO normalize place
         self.addDocument(person.handle, ' '.join(text), sex="gender%s" % str(person.get_gender()))
 
@@ -72,9 +75,8 @@ class fulltextDatabase():
         result = "%s\n" % (handle)  #TMP
         self.cur.execute("SELECT grampsHandle, sex, person FROM ft WHERE grampsHandle='%s'" % handle)
         for row in self.cur:
-            #person = row['person']
             #  Use OR propability search
-            person = ' OR '.join(row['person'].split())
+            person = ' OR '.join('"{0}"'.format(w) for w in row['person'].split())
             sex = row['sex']
         sql = "SELECT grampsHandle,person,rank FROM ft WHERE person MATCH '%s' AND sex='%s' ORDER BY RANK LIMIT %d" % (person, sex, ant)
         self.cur.execute(sql)

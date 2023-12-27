@@ -61,7 +61,7 @@ If something goes wrong, you will then have a way to go back and start over.
 
 **Hint - speed improvement**
 
-If you add a tag like "Imp%Y%m%d%H%M%S" on import the plugin will make an effort just to match those persons imported last,
+If you add a tag like "Imported %Y%m%d%H%M%S" on import the plugin will make an effort just to match those persons imported last,
 in order to speed up things. Otherwise all persons will be matched.
 
 ![Gramps Preferences](/Preferences.png)
