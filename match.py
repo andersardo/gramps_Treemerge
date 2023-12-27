@@ -30,6 +30,7 @@ from gramps.gen.soundex import soundex, compare
 from gramps.gen.lib import Event, Person
 from gramps.gen.utils.db import (get_birth_or_fallback, get_death_or_fallback)
 from gramps.gen import datehandler
+from gramps.gui.dialog import ErrorDialog
 from features import Features
 from ftDatabase import fulltextDatabase
 # import cProfile
@@ -113,8 +114,9 @@ class Match():
         try:
             self.setup_data_structures()
             self.find_potentials(self.threshold)
-        except AttributeError as msg:
-            # RunDatabaseRepair(str(msg), parent=self.window)
+        except Exception as msg:
+            self.progress.close()
+            ErrorDialog('Unexpected error when matching', str(msg))
             return
 
     def get_date_strings(self, person):
